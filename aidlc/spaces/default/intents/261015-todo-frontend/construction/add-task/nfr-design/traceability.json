@@ -1,0 +1,36 @@
+{
+  "stage": "nfr-design",
+  "unit": "add-task",
+  "upstream_ids": [
+    "NFR1.1", "NFR1.2", "NFR1.3", "NFR1.4", "NFR1.5",
+    "NFR2.1",
+    "NFR3.1", "NFR3.2", "NFR3.3", "NFR3.4",
+    "NFR4.1",
+    "NFR5.1", "NFR5.2", "NFR5.3",
+    "NFR6.1",
+    "NFR7.1", "NFR7.2", "NFR7.3",
+    "NFR8.1", "NFR8.2"
+  ],
+  "coverage": [
+    { "id": "NFR1.1", "status": "OK", "target": "performance-design D1, D2, D3 and the budget table" },
+    { "id": "NFR1.2", "status": "OK", "target": "performance-design D2: the save runs after the new row is drawn" },
+    { "id": "NFR1.3", "status": "OK", "target": "performance-design D5: timing guard test in the suite" },
+    { "id": "NFR1.4", "status": "OK", "target": "performance-design D5: manual timing in Chrome at the first checkpoint" },
+    { "id": "NFR1.5", "status": "OK", "target": "performance-design D1 and D4: one read at open, one write per add plus the one-time backup" },
+    { "id": "NFR2.1", "status": "OK", "target": "performance-design D6: Vite default targets, no newer feature, id fallback" },
+    { "id": "NFR3.1", "status": "OK", "target": "security-design C-7: native controls, focus ring, keyboard test and manual run" },
+    { "id": "NFR3.2", "status": "OK", "target": "security-design C-7: label, alert linked to the input, axe check, assertion on the alert" },
+    { "id": "NFR3.3", "status": "OK", "target": "security-design C-7: (!) mark and a manual contrast check" },
+    { "id": "NFR3.4", "status": "OK", "target": "security-design C-7 and C-8: accessibility check in the component tests" },
+    { "id": "NFR4.1", "status": "OK", "target": "security-design C-1: text child display and ESLint rules against raw HTML" },
+    { "id": "NFR5.1", "status": "OK", "target": "security-design C-2: no-network spy test" },
+    { "id": "NFR5.2", "status": "OK", "target": "security-design C-2: ESLint restricted names outside src/services" },
+    { "id": "NFR5.3", "status": "OK", "target": "security-design C-3: npm audit report before each merge" },
+    { "id": "NFR6.1", "status": "OK", "target": "security-design C-4: one shape check used by load and save" },
+    { "id": "NFR7.1", "status": "OK", "target": "security-design C-8: coverage floor and edge cases per piece" },
+    { "id": "NFR7.2", "status": "OK", "target": "security-design C-8: tests written layer by layer" },
+    { "id": "NFR7.3", "status": "OK", "target": "performance-design D7: no test or floor is weakened" },
+    { "id": "NFR8.1", "status": "OK", "target": "security-design C-5: one storage call for the whole list" },
+    { "id": "NFR8.2", "status": "OK", "target": "security-design C-6: backup before overwriting, never overwritten" }
+  ]
+}

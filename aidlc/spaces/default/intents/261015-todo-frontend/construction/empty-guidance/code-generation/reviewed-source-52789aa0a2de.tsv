@@ -1,0 +1,5 @@
+manifest	f61cb7e2b594e7285bf24fc29e60235311c06c915dbdfd223ccfb1ed68bf4b7f	-
+	frontend/src/App.test.jsx	100644	7cf9929d0e3900aed33af6927f0a2afa5281475090ebb70083a390fe0a3da704
+	frontend/src/components/TaskList.jsx	100644	c7062bd77fd1523bd7eb9b87b8f177e87aac4613ee3a12257747820b6b276a09
+	frontend/src/components/TaskList.test.jsx	100644	d46346f51a7ffef163f41b6350041693a328e2f5e4f323348ada1d580f6cee9a
+	frontend/src/styles.css	100644	6c4e09f6bca5ef6cfec7acd354442b99244892d1b12da95031b1239ac92625aa

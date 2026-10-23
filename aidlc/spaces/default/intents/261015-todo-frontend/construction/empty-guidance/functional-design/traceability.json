@@ -1,0 +1,16 @@
+{
+  "stage": "functional-design",
+  "unit": "empty-guidance",
+  "upstream_ids": ["AC9.1.1", "AC9.1.2"],
+  "coverage": [
+    { "id": "AC9.1.1", "status": "OK", "target": "BR9.1" },
+    { "id": "AC9.1.2", "status": "OK", "target": "BR9.2" }
+  ],
+  "reverse": [
+    { "id": "BR9.3", "status": "N/A", "target": "FR9.1 and screens M1 and M2: the hint goes away when a task exists; no acceptance criterion states it" },
+    { "id": "BR9.4", "status": "N/A", "target": "Answer Q1 of this stage (the hint also shows beside the load-failed notice); no acceptance criterion states it" },
+    { "id": "BR9.5", "status": "N/A", "target": "NFR3 and NFR4 and the interaction spec: how the hint looks and is read; no acceptance criterion" },
+    { "id": "BR9.6", "status": "N/A", "target": "Unit definition boundary: the hint changes nothing else and is independent of the filter; no acceptance criterion" },
+    { "id": "BR9.7", "status": "N/A", "target": "Unit definition boundary and FR7.2: the count part of AC9.1.1 is delivered and checked in U7" }
+  ]
+}

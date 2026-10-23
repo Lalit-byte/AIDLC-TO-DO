@@ -1,0 +1,17 @@
+{
+  "stage": "code-generation",
+  "unit": "complete-task",
+  "version": 1,
+  "writes": [
+    { "path": "src/hooks/useTasks.js" },
+    { "path": "src/components/TaskItem.jsx" },
+    { "path": "src/components/TaskList.jsx" },
+    { "path": "src/App.jsx" },
+    { "path": "src/styles.css" },
+    { "path": "src/hooks/useTasks.test.jsx" },
+    { "path": "src/components/TaskItem.test.jsx" },
+    { "path": "src/components/TaskList.test.jsx" },
+    { "path": "src/App.test.jsx" },
+    { "path": "docs/TASKS.md" }
+  ]
+}

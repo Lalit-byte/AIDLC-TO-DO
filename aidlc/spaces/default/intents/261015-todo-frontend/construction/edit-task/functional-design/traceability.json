@@ -1,0 +1,23 @@
+{
+  "stage": "functional-design",
+  "unit": "edit-task",
+  "upstream_ids": ["AC4.1.1", "AC4.1.2", "AC4.1.3", "AC4.1.4", "AC4.1.5"],
+  "coverage": [
+    { "id": "AC4.1.1", "status": "OK", "target": "BR4.1" },
+    { "id": "AC4.1.2", "status": "OK", "target": "BR4.2" },
+    { "id": "AC4.1.3", "status": "OK", "target": "BR4.3" },
+    { "id": "AC4.1.4", "status": "OK", "target": "BR4.4" },
+    { "id": "AC4.1.5", "status": "OK", "target": "BR4.2" }
+  ],
+  "reverse": [
+    { "id": "BR4.5", "status": "N/A", "target": "Answer Q1 of this stage (same title closes like Cancel); no acceptance criterion states it" },
+    { "id": "BR4.6", "status": "N/A", "target": "Answer Q2 of this stage (clicking elsewhere does nothing); no acceptance criterion states it" },
+    { "id": "BR4.7", "status": "N/A", "target": "Answer Q3 of this stage (only one task is edited at a time); no acceptance criterion states it" },
+    { "id": "BR4.8", "status": "N/A", "target": "Contract C4 result shape and robustness rule for an unknown id; no acceptance criterion" },
+    { "id": "BR4.9", "status": "N/A", "target": "Saving rule from FR6.3 and contract C4, shared with the other units; belongs to US6.1" },
+    { "id": "BR4.10", "status": "N/A", "target": "NFR3 keyboard, naming and announcement requirements and the interaction spec; supports AC4.1.1 to AC4.1.3 but is not one" },
+    { "id": "BR4.11", "status": "N/A", "target": "NFR4 plain-text requirement and the interaction spec naming rule; no acceptance criterion" },
+    { "id": "BR4.12", "status": "N/A", "target": "Component catalogue and ADR-004 on where state lives; a structure rule, not an acceptance criterion" },
+    { "id": "BR4.13", "status": "N/A", "target": "Screen M4 (Edit and Delete replaced by Save and Cancel while editing) and the interaction spec (the checkbox stays usable); no acceptance criterion" }
+  ]
+}

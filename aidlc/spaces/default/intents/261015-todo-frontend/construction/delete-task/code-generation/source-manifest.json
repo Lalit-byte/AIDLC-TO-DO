@@ -1,0 +1,20 @@
+{
+  "stage": "code-generation",
+  "unit": "delete-task",
+  "version": 1,
+  "writes": [
+    { "path": "frontend/src/hooks/useTasks.js" },
+    { "path": "frontend/src/hooks/useTasks.test.jsx" },
+    { "path": "frontend/src/components/DeleteDialog.jsx" },
+    { "path": "frontend/src/components/DeleteDialog.test.jsx" },
+    { "path": "frontend/src/components/TaskItem.jsx" },
+    { "path": "frontend/src/components/TaskItem.test.jsx" },
+    { "path": "frontend/src/components/TaskList.jsx" },
+    { "path": "frontend/src/components/TaskList.test.jsx" },
+    { "path": "frontend/src/App.jsx" },
+    { "path": "frontend/src/App.test.jsx" },
+    { "path": "frontend/src/styles.css" },
+    { "path": "frontend/src/test/dialog.js" },
+    { "path": "frontend/src/test/setup.js" }
+  ]
+}

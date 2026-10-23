@@ -1,0 +1,9 @@
+{"stage":"code-generation","unit":"storage-note","upstream_ids":["AC8.1.1","AC8.1.2","BR8.1","BR8.2","BR8.3","BR8.4","BR8.5"],"coverage":[
+{"id":"AC8.1.1","status":"OK","target":"frontend/src/App.test.jsx"},
+{"id":"AC8.1.2","status":"OK","target":"frontend/src/App.test.jsx"},
+{"id":"BR8.1","status":"OK","target":"frontend/src/App.jsx"},
+{"id":"BR8.2","status":"OK","target":"frontend/src/App.jsx"},
+{"id":"BR8.3","status":"OK","target":"frontend/src/App.test.jsx"},
+{"id":"BR8.4","status":"OK","target":"frontend/src/App.test.jsx"},
+{"id":"BR8.5","status":"OK","target":"frontend/src/App.jsx"}
+]}

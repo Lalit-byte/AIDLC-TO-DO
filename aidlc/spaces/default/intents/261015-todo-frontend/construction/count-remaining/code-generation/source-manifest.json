@@ -1,0 +1,15 @@
+{
+  "stage": "code-generation",
+  "unit": "count-remaining",
+  "version": 1,
+  "writes": [
+    { "path": "frontend/src/hooks/useTasks.js" },
+    { "path": "frontend/src/components/Counter.jsx" },
+    { "path": "frontend/src/App.jsx" },
+    { "path": "frontend/src/styles.css" },
+    { "path": "frontend/src/hooks/useTasks.test.jsx" },
+    { "path": "frontend/src/components/Counter.test.jsx" },
+    { "path": "frontend/src/App.test.jsx" },
+    { "path": "docs/TASKS.md" }
+  ]
+}

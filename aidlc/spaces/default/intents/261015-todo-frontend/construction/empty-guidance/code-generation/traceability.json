@@ -1,0 +1,16 @@
+{
+  "stage": "code-generation",
+  "unit": "empty-guidance",
+  "upstream_ids": ["AC9.1.1", "AC9.1.2", "BR9.1", "BR9.2", "BR9.3", "BR9.4", "BR9.5", "BR9.6", "BR9.7"],
+  "coverage": [
+    { "id": "AC9.1.1", "status": "Deferred", "target": "frontend/src/App.test.jsx (hint part covered here; the 0 items left part belongs to the count unit U7)" },
+    { "id": "AC9.1.2", "status": "OK", "target": "frontend/src/App.test.jsx" },
+    { "id": "BR9.1", "status": "OK", "target": "frontend/src/components/TaskList.jsx" },
+    { "id": "BR9.2", "status": "OK", "target": "frontend/src/components/TaskList.test.jsx" },
+    { "id": "BR9.3", "status": "OK", "target": "frontend/src/App.test.jsx" },
+    { "id": "BR9.4", "status": "OK", "target": "frontend/src/App.test.jsx" },
+    { "id": "BR9.5", "status": "OK", "target": "frontend/src/styles.css" },
+    { "id": "BR9.6", "status": "OK", "target": "frontend/src/components/TaskList.test.jsx" },
+    { "id": "BR9.7", "status": "Deferred", "target": "Belongs to the count unit U7; not built here" }
+  ]
+}

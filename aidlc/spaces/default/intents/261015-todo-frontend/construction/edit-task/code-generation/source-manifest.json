@@ -1,0 +1,21 @@
+{
+  "stage": "code-generation",
+  "unit": "edit-task",
+  "version": 1,
+  "writes": [
+    { "path": "frontend/src/hooks/useTasks.js" },
+    { "path": "frontend/src/components/titleMessages.js" },
+    { "path": "frontend/src/components/TaskEditField.jsx" },
+    { "path": "frontend/src/components/TaskItem.jsx" },
+    { "path": "frontend/src/components/TaskList.jsx" },
+    { "path": "frontend/src/components/TaskForm.jsx" },
+    { "path": "frontend/src/App.jsx" },
+    { "path": "frontend/src/styles.css" },
+    { "path": "frontend/src/hooks/useTasks.test.jsx" },
+    { "path": "frontend/src/components/TaskEditField.test.jsx" },
+    { "path": "frontend/src/components/TaskItem.test.jsx" },
+    { "path": "frontend/src/components/TaskList.test.jsx" },
+    { "path": "frontend/src/components/TaskForm.test.jsx" },
+    { "path": "frontend/src/App.test.jsx" }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "stage": "functional-design",
+  "unit": "storage-note",
+  "upstream_ids": ["AC8.1.1", "AC8.1.2"],
+  "coverage": [
+    { "id": "AC8.1.1", "status": "OK", "target": "BR8.1" },
+    { "id": "AC8.1.2", "status": "OK", "target": "BR8.2" }
+  ],
+  "reverse": [
+    { "id": "BR8.3", "status": "N/A", "target": "FR8.1 says the line is always shown; no acceptance criterion states it for the message, edit and dialog cases" },
+    { "id": "BR8.4", "status": "N/A", "target": "Screens M1, M2 and M8 for position and NFR3 and NFR4 for how it looks and is read; no acceptance criterion" },
+    { "id": "BR8.5", "status": "N/A", "target": "Component catalogue (App holds no business rules) and the team hard rule on storage and network; a structure rule, not an acceptance criterion" }
+  ]
+}

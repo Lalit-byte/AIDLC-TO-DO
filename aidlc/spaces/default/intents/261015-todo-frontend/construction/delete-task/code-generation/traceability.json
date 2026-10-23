@@ -1,0 +1,26 @@
+{
+  "stage": "code-generation",
+  "unit": "delete-task",
+  "upstream_ids": [
+    "AC3.1.1", "AC3.1.2", "AC3.1.3", "AC3.1.4",
+    "BR3.1", "BR3.2", "BR3.3", "BR3.4", "BR3.5", "BR3.6",
+    "BR3.7", "BR3.8", "BR3.9", "BR3.10", "BR3.11"
+  ],
+  "coverage": [
+    { "id": "AC3.1.1", "status": "OK", "target": "frontend/src/App.test.jsx" },
+    { "id": "AC3.1.2", "status": "OK", "target": "frontend/src/App.test.jsx" },
+    { "id": "AC3.1.3", "status": "OK", "target": "frontend/src/App.test.jsx" },
+    { "id": "AC3.1.4", "status": "OK", "target": "frontend/src/App.test.jsx" },
+    { "id": "BR3.1", "status": "OK", "target": "frontend/src/components/DeleteDialog.jsx" },
+    { "id": "BR3.2", "status": "OK", "target": "frontend/src/hooks/useTasks.js" },
+    { "id": "BR3.3", "status": "OK", "target": "frontend/src/components/DeleteDialog.jsx" },
+    { "id": "BR3.4", "status": "OK", "target": "frontend/src/components/DeleteDialog.test.jsx" },
+    { "id": "BR3.5", "status": "OK", "target": "frontend/src/components/DeleteDialog.jsx" },
+    { "id": "BR3.6", "status": "OK", "target": "frontend/src/App.jsx" },
+    { "id": "BR3.7", "status": "OK", "target": "frontend/src/App.jsx" },
+    { "id": "BR3.8", "status": "OK", "target": "frontend/src/hooks/useTasks.js" },
+    { "id": "BR3.9", "status": "OK", "target": "frontend/src/hooks/useTasks.test.jsx" },
+    { "id": "BR3.10", "status": "OK", "target": "frontend/src/components/TaskItem.jsx" },
+    { "id": "BR3.11", "status": "OK", "target": "frontend/src/components/DeleteDialog.jsx" }
+  ]
+}

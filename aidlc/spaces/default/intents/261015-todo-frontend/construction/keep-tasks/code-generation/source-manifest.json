@@ -1,0 +1,16 @@
+{
+  "stage": "code-generation",
+  "unit": "keep-tasks",
+  "version": 1,
+  "writes": [
+    { "path": "frontend/src/services/taskStorage.js" },
+    { "path": "frontend/src/services/taskStorage.test.js" },
+    { "path": "frontend/src/hooks/useTasks.js" },
+    { "path": "frontend/src/hooks/useTasks.test.jsx" },
+    { "path": "frontend/src/components/MessageBar.jsx" },
+    { "path": "frontend/src/components/MessageBar.test.jsx" },
+    { "path": "frontend/src/App.jsx" },
+    { "path": "frontend/src/App.test.jsx" },
+    { "path": "frontend/src/styles.css" }
+  ]
+}

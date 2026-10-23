@@ -1,0 +1,34 @@
+{
+  "stage": "code-generation",
+  "unit": "count-remaining",
+  "upstream_ids": [
+    "AC7.1.1",
+    "AC7.1.2",
+    "AC7.1.3",
+    "AC7.1.4",
+    "BR7.1",
+    "BR7.2",
+    "BR7.3",
+    "BR7.4",
+    "BR7.5",
+    "BR7.6",
+    "BR7.7"
+  ],
+  "coverage": [
+    { "id": "AC7.1.1", "status": "OK", "target": "frontend/src/App.test.jsx" },
+    { "id": "AC7.1.2", "status": "OK", "target": "frontend/src/components/Counter.test.jsx" },
+    { "id": "AC7.1.3", "status": "OK", "target": "frontend/src/App.test.jsx" },
+    {
+      "id": "AC7.1.4",
+      "status": "Deferred",
+      "target": "frontend/src/hooks/useTasks.js (remaining is derived from the full list; fully verified only when the filter unit adds the filter and the All, Active and Completed test)"
+    },
+    { "id": "BR7.1", "status": "OK", "target": "frontend/src/hooks/useTasks.js" },
+    { "id": "BR7.2", "status": "OK", "target": "frontend/src/components/Counter.jsx" },
+    { "id": "BR7.3", "status": "OK", "target": "frontend/src/hooks/useTasks.test.jsx" },
+    { "id": "BR7.4", "status": "OK", "target": "frontend/src/hooks/useTasks.js" },
+    { "id": "BR7.5", "status": "OK", "target": "frontend/src/App.jsx" },
+    { "id": "BR7.6", "status": "OK", "target": "frontend/src/components/Counter.test.jsx" },
+    { "id": "BR7.7", "status": "OK", "target": "frontend/src/hooks/useTasks.js" }
+  ]
+}

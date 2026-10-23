@@ -1,0 +1,22 @@
+{
+  "stage": "functional-design",
+  "unit": "add-task",
+  "upstream_ids": ["AC1.1.1", "AC1.1.2", "AC1.1.3", "AC1.1.4", "AC1.1.5", "AC1.1.6"],
+  "coverage": [
+    { "id": "AC1.1.1", "status": "OK", "target": "BR1.1, BR1.6, BR1.8, BR1.16" },
+    { "id": "AC1.1.2", "status": "OK", "target": "BR1.2" },
+    { "id": "AC1.1.3", "status": "OK", "target": "BR1.3" },
+    { "id": "AC1.1.4", "status": "OK", "target": "BR1.4" },
+    { "id": "AC1.1.5", "status": "OK", "target": "BR1.5" },
+    { "id": "AC1.1.6", "status": "OK", "target": "BR1.7" }
+  ],
+  "reverse": [
+    { "id": "BR1.9", "status": "N/A", "target": "Task shape and id rule from NFR6 and contract C1; supports every acceptance criterion but is not one" },
+    { "id": "BR1.10", "status": "N/A", "target": "Save rule from NFR8 and contract C2 and C3; supports the reload in AC6.1.1 of US6.1, which U1 also exercises" },
+    { "id": "BR1.11", "status": "N/A", "target": "Load rule from FR6.3 and contract C2; belongs to US6.1 (U6) and is needed here so the first slice reads its own saved tasks and a loaded list can always be saved again" },
+    { "id": "BR1.12", "status": "N/A", "target": "Failed-save rule from FR6.3 and contract C4; belongs to US6.1 (U6) and is needed so the first save behaves correctly" },
+    { "id": "BR1.13", "status": "N/A", "target": "Backup rule from FR6.3 (reworded); belongs to US6.1 (U6) and decides what the first save does after unreadable data" },
+    { "id": "BR1.14", "status": "N/A", "target": "Blocked-storage rule from FR6.3; belongs to US6.1 (U6)" },
+    { "id": "BR1.15", "status": "N/A", "target": "Structure rule from ADR-002 and the team hard rule that storage stays in src/services; no acceptance criterion" }
+  ]
+}

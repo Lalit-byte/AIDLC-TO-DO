@@ -1,0 +1,11 @@
+{
+  "stage": "code-generation",
+  "unit": "empty-guidance",
+  "version": 1,
+  "writes": [
+    { "path": "frontend/src/components/TaskList.jsx" },
+    { "path": "frontend/src/styles.css" },
+    { "path": "frontend/src/components/TaskList.test.jsx" },
+    { "path": "frontend/src/App.test.jsx" }
+  ]
+}
