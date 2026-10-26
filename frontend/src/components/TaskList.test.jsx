@@ -39,11 +39,6 @@ describe('TaskList', () => {
     expect(screen.getAllByTestId('task-item')).toHaveLength(2);
   });
 
-  it('shows nothing when tasks exist but none is shown (the filter message is its own)', () => {
-    const { container } = render(<TaskList tasks={[]} hasTasks />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
   it('keeps existing rows when a task is added at the front', () => {
     const tasks = makeTasks(3);
     const { rerender } = render(<TaskList tasks={tasks} hasTasks />);
@@ -117,5 +112,19 @@ describe('TaskList', () => {
     rerender(<TaskList tasks={toggled} hasTasks onToggle={() => {}} />);
     expect(screen.getAllByTestId('task-item')).toEqual(before);
     expect(screen.getAllByTestId('task-checkbox')[1]).toBeChecked();
+  });
+});
+
+describe('TaskList: filter message', () => {
+  it('shows the filter message, not the hint, when tasks exist but none is shown (BR5.3)', () => {
+    render(<TaskList tasks={[]} hasTasks />);
+    expect(screen.getByTestId('filter-empty')).toHaveTextContent(/^No tasks match this filter\.$/);
+    expect(screen.queryByTestId('empty-hint')).not.toBeInTheDocument();
+  });
+
+  it('shows the hint, not the filter message, when there are no tasks at all', () => {
+    render(<TaskList tasks={[]} hasTasks={false} />);
+    expect(screen.getByTestId('empty-hint')).toBeInTheDocument();
+    expect(screen.queryByTestId('filter-empty')).not.toBeInTheDocument();
   });
 });

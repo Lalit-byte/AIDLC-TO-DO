@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Counter from './components/Counter.jsx';
 import DeleteDialog from './components/DeleteDialog.jsx';
+import FilterBar from './components/FilterBar.jsx';
 import MessageBar from './components/MessageBar.jsx';
 import TaskForm from './components/TaskForm.jsx';
 import TaskList from './components/TaskList.jsx';
@@ -13,7 +14,18 @@ const INPUT_TARGET = { kind: 'input' };
 // Cancel and after a delete (BR3.6). A focus request is kept in a ref and honoured in
 // this component's own effect, which runs after the dialog's effect has closed the dialog.
 export default function App() {
-  const { visibleTasks, hasTasks, remaining, notice, add, toggle, remove, edit } = useTasks();
+  const {
+    visibleTasks,
+    filter,
+    setFilter,
+    hasTasks,
+    remaining,
+    notice,
+    add,
+    toggle,
+    remove,
+    edit,
+  } = useTasks();
   const [pendingId, setPendingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const rootRef = useRef(null);
@@ -106,6 +118,21 @@ export default function App() {
     setPendingId(null);
   }
 
+  // A tick (while Active) or untick (while Completed) takes the row out of view: work out the
+  // focus target from the list as shown, before the change, and ask for it (BR5.8). In every
+  // other case no focus request is set, so none can be left over after an ignored tick.
+  function handleToggle(id) {
+    const index = visibleTasks.findIndex((task) => task.id === id);
+    const leaves = index !== -1 && filter !== 'all';
+    if (leaves) {
+      const neighbour = visibleTasks[index + 1] ?? visibleTasks[index - 1];
+      focusRequestRef.current = neighbour
+        ? { kind: 'row', id: neighbour.id, control: 'checkbox' }
+        : INPUT_TARGET;
+    }
+    toggle(id);
+  }
+
   return (
     <main className="card" ref={rootRef}>
       <h1 className="card__title">Todo List</h1>
@@ -118,7 +145,7 @@ export default function App() {
         tasks={visibleTasks}
         hasTasks={hasTasks}
         editingId={shownEditingId}
-        onToggle={toggle}
+        onToggle={handleToggle}
         onAskDelete={askDelete}
         onStartEdit={startEdit}
         onEndEdit={endEdit}
@@ -126,6 +153,7 @@ export default function App() {
       />
       <div className="summary" data-testid="summary">
         <Counter remaining={remaining} />
+        <FilterBar filter={filter} onChange={setFilter} />
       </div>
       <DeleteDialog task={pendingTask} onConfirm={confirmDelete} onCancel={cancelDelete} />
     </main>

@@ -1,5 +1,6 @@
-// State hook (contract C4, these Units' part): the list on screen, `remaining` (the count of
-// incomplete tasks in the full list), the notice, `add`, `toggle`, `remove` and `edit`.
+// State hook (contract C4, these Units' part): the shown list (`visibleTasks`, the full list
+// narrowed by `filter`), `filter` and `setFilter` (all | active | completed, never saved),
+// `hasTasks` and `remaining` (both from the full list), the notice, `add`, `toggle`, `remove`, `edit`.
 // Performance design D1, D2: the list lives in memory; the save runs after the new row is drawn.
 // Keep-tasks (BR6.4, BR6.9, BR6.14): it also follows another tab through `TaskStorage.subscribe`.
 
@@ -20,6 +21,8 @@ export function newId() {
   return `${Date.now().toString(36)}-${random()}${random()}`;
 }
 
+const FILTERS = ['all', 'active', 'completed'];
+
 export function useTasks() {
   // Read the saved list once, when the page opens (NFR1.5).
   const [loaded] = useState(() => TaskStorage.load());
@@ -27,6 +30,9 @@ export function useTasks() {
 
   const [tasks, setTasks] = useState(() => (loaded.ok ? loaded.tasks : []));
   const [saveFailed, setSaveFailed] = useState(false);
+  // Screen state only (BR5.4): starts as all on every page load, never saved, and a list
+  // replaced by another tab does not touch it.
+  const [filter, setFilterState] = useState('all');
   // Another tab left damaged data; like a failed load, it stays until the page is reloaded.
   const [otherTabDamaged, setOtherTabDamaged] = useState(false);
 
@@ -162,8 +168,23 @@ export function useTasks() {
   // render: not saved and held in no state of its own (BR7.1, BR7.3, BR7.4, BR7.7).
   const remaining = tasks.filter((task) => !task.completed).length;
 
+  // A value that is not one of the three is ignored (BR5.1).
+  const setFilter = useCallback((value) => {
+    if (FILTERS.includes(value)) {
+      setFilterState(value);
+    }
+  }, []);
+
+  // The full list narrowed by the filter, in the full list's order (BR5.1, BR5.7).
+  const visibleTasks =
+    filter === 'all'
+      ? tasks
+      : tasks.filter((task) => (filter === 'completed' ? task.completed : !task.completed));
+
   return {
-    visibleTasks: tasks,
+    visibleTasks,
+    filter,
+    setFilter,
     hasTasks: tasks.length > 0,
     remaining,
     notice,

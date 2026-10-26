@@ -264,6 +264,33 @@ body {
   color: var(--text);
 }
 
+/* Filter buttons at the right of the summary line (BR5.2, BR5.5, BR5.11): the chosen one has
+   an accent border and bold text, so it is not color alone. No animation. */
+.filter-bar {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.filter-bar__button {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.filter-bar__button[aria-pressed='true'] {
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.filter-bar__button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
 /* Delete button at the right of the row (screen M5). */
 .task-item__delete {
   flex: none;

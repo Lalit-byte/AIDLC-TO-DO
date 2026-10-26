@@ -1,0 +1,17 @@
+{
+  "stage": "code-generation",
+  "unit": "filter-tasks",
+  "version": 1,
+  "writes": [
+    { "path": "frontend/src/hooks/useTasks.js" },
+    { "path": "frontend/src/components/FilterBar.jsx" },
+    { "path": "frontend/src/components/TaskList.jsx" },
+    { "path": "frontend/src/App.jsx" },
+    { "path": "frontend/src/styles.css" },
+    { "path": "frontend/src/hooks/useTasks.test.jsx" },
+    { "path": "frontend/src/components/FilterBar.test.jsx" },
+    { "path": "frontend/src/components/TaskList.test.jsx" },
+    { "path": "frontend/src/App.test.jsx" },
+    { "path": "docs/TASKS.md" }
+  ]
+}

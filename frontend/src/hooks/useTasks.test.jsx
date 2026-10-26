@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BACKUP_PREFIX, STORAGE_KEY, TaskStorage } from '../services/taskStorage.js';
-import { makeTasks, savedText } from '../test/tasks.js';
+import { makeTask, makeTasks, savedText } from '../test/tasks.js';
 import { LOAD_FAILED_TEXT, newId, SAVE_FAILED_TEXT, useTasks } from './useTasks.js';
 
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -645,6 +645,64 @@ describe('useTasks: another tab', () => {
     const { unmount } = renderHook(() => useTasks());
     unmount();
     expect(stop).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useTasks: filter', () => {
+  // One active task (id-1) and one complete task (id-2), in that order.
+  function mixed() {
+    const tasks = [makeTask({ id: 'id-1' }), makeTask({ id: 'id-2', completed: true })];
+    localStorage.setItem(STORAGE_KEY, savedText(tasks));
+    return tasks;
+  }
+
+  it('starts as all with every task shown', () => {
+    const tasks = mixed();
+    const { result } = renderHook(() => useTasks());
+    expect(result.current.filter).toBe('all');
+    expect(result.current.visibleTasks).toEqual(tasks);
+  });
+
+  it('shows 2, 1 and 1 tasks for all, active and completed, in the full list order (AC5.1.1)', () => {
+    const tasks = mixed();
+    const { result } = renderHook(() => useTasks());
+    act(() => result.current.setFilter('active'));
+    expect(result.current.visibleTasks).toEqual([tasks[0]]);
+    act(() => result.current.setFilter('completed'));
+    expect(result.current.visibleTasks).toEqual([tasks[1]]);
+    act(() => result.current.setFilter('all'));
+    expect(result.current.visibleTasks).toEqual(tasks);
+  });
+
+  it('keeps remaining and hasTasks from the full list under every filter (BR5.6)', () => {
+    mixed();
+    const { result } = renderHook(() => useTasks());
+    act(() => result.current.setFilter('completed'));
+    expect(result.current.remaining).toBe(1);
+    act(() => result.current.setFilter('active'));
+    act(() => result.current.toggle('id-1'));
+    expect(result.current.visibleTasks).toEqual([]);
+    expect(result.current.hasTasks).toBe(true);
+    expect(result.current.remaining).toBe(0);
+  });
+
+  it('does not save the filter and keeps it when another tab replaces the list (BR5.4)', async () => {
+    mixed();
+    const first = renderHook(() => useTasks());
+    act(() => first.result.current.setFilter('active'));
+    first.unmount();
+    const { result } = renderHook(() => useTasks());
+    expect(result.current.filter).toBe('all');
+    act(() => result.current.setFilter('completed'));
+    otherTab(savedText(makeTasks(2)));
+    expect(result.current.filter).toBe('completed');
+    expect(result.current.visibleTasks).toEqual([]);
+  });
+
+  it('ignores a filter value that is not one of the three', () => {
+    const { result } = renderHook(() => useTasks());
+    act(() => result.current.setFilter('bogus'));
+    expect(result.current.filter).toBe('all');
   });
 });
 

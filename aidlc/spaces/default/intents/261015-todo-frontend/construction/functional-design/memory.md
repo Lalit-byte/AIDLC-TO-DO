@@ -23,6 +23,8 @@
 
 - 2026-10-23T10:40:00Z [unit count-remaining] — as with storage-note, wording, position and behaviour were fixed by the requirements and mockups, so the questions file holds only the design basis and the confirmation; the count part of AC9.1.1 left by empty-guidance is delivered here (BR7.5).
 
+- 2026-10-26T09:00:00Z [unit filter-tasks] — Q1: A (focus after a tick takes a row out of view follows the delete rule) and Q2: A (a task added under Completed is hidden, filter kept). The AC7.1.4 count test handed over by count-remaining is rule BR5.6; it is left out of the traceability coverage list because AC7.1.4 belongs to story US7.1, and it sits in the reverse list with that explanation.
+
 ## Open questions
 <!-- example: 2026-05-29T10:14:32Z — confirm the retention window with compliance before the next stage hardens the schema -->
 - 2026-10-23T06:38:27Z [unit edit-task] — where the add form's two refusal messages live so the row and the form share one copy; left to the Code Generation plan.

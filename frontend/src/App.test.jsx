@@ -935,3 +935,114 @@ describe('App: count remaining', () => {
     expect(counter()).toHaveTextContent('0 items left');
   });
 });
+
+describe('App: filter tasks', () => {
+  // Task number 1 is active, Task number 2 is complete.
+  function saveMixed() {
+    const tasks = makeTasks(2).map((task, index) => ({ ...task, completed: index === 1 }));
+    localStorage.setItem(STORAGE_KEY, savedText(tasks));
+  }
+  const pick = (name) => screen.getByTestId(`filter-${name}`);
+
+  it('shows 2, 1 and 1 tasks for All, Active and Completed, with the chosen button pressed (AC5.1.1, AC5.1.2)', async () => {
+    const user = userEvent.setup();
+    saveMixed();
+    render(<App />);
+    expect(rowTexts()).toHaveLength(2);
+    expect(pick('all')).toHaveAttribute('aria-pressed', 'true');
+    await user.click(pick('active'));
+    expect(rowTexts()).toEqual(['Task number 1']);
+    expect(pick('active')).toHaveAttribute('aria-pressed', 'true');
+    expect(pick('all')).toHaveAttribute('aria-pressed', 'false');
+    await user.click(pick('completed'));
+    expect(rowTexts()).toEqual(['Task number 2']);
+    expect(pick('completed')).toHaveAttribute('aria-pressed', 'true');
+    await user.click(pick('all'));
+    expect(rowTexts()).toHaveLength(2);
+  });
+
+  it('shows "No tasks match this filter." when nothing matches (AC5.1.3)', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem(STORAGE_KEY, savedText(makeTasks(2)));
+    render(<App />);
+    await user.click(pick('completed'));
+    expect(screen.getByTestId('filter-empty')).toHaveTextContent('No tasks match this filter.');
+    expect(screen.queryByTestId('empty-hint')).not.toBeInTheDocument();
+  });
+
+  it('is All again after a reload (AC5.1.4)', async () => {
+    const user = userEvent.setup();
+    saveMixed();
+    const first = render(<App />);
+    await user.click(pick('active'));
+    first.unmount();
+    render(<App />);
+    expect(pick('all')).toHaveAttribute('aria-pressed', 'true');
+    expect(rowTexts()).toHaveLength(2);
+  });
+
+  it('is reachable and chosen by keyboard only (AC5.1.5)', async () => {
+    const user = userEvent.setup();
+    saveMixed();
+    render(<App />);
+    pick('all').focus();
+    await user.tab();
+    expect(pick('active')).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(rowTexts()).toEqual(['Task number 1']);
+    await user.tab();
+    expect(pick('completed')).toHaveFocus();
+    await user.keyboard(' ');
+    expect(rowTexts()).toEqual(['Task number 2']);
+    expect(pick('completed')).toHaveFocus();
+  });
+
+  it('reads the same count under every filter with a mixed list (BR5.6)', async () => {
+    const user = userEvent.setup();
+    saveMixed();
+    render(<App />);
+    for (const name of ['active', 'completed', 'all']) {
+      await user.click(pick(name));
+      expect(screen.getByTestId('counter')).toHaveTextContent('1 item left');
+    }
+  });
+
+  it('moves focus to the next row, the one above, then the add input after a tick under Active (BR5.8)', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem(STORAGE_KEY, savedText(makeTasks(3)));
+    render(<App />);
+    await user.click(pick('active'));
+    await user.click(screen.getAllByTestId('task-checkbox')[0]);
+    expect(rowTexts()).toEqual(['Task number 2', 'Task number 3']);
+    expect(screen.getAllByTestId('task-checkbox')[0]).toHaveFocus();
+    await user.click(screen.getAllByTestId('task-checkbox')[1]);
+    expect(rowTexts()).toEqual(['Task number 2']);
+    expect(screen.getAllByTestId('task-checkbox')[0]).toHaveFocus();
+    await user.click(screen.getAllByTestId('task-checkbox')[0]);
+    expect(rowTexts()).toEqual([]);
+    expect(screen.getByTestId('task-input')).toHaveFocus();
+  });
+
+  it('does not show a task added under Completed, keeps the filter and counts it (BR5.9)', async () => {
+    const user = userEvent.setup();
+    saveMixed();
+    render(<App />);
+    await user.click(pick('completed'));
+    await user.type(screen.getByTestId('task-input'), 'Brand new{Enter}');
+    expect(rowTexts()).toEqual(['Task number 2']);
+    expect(pick('completed')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('counter')).toHaveTextContent('2 items left');
+  });
+
+  it('ends an edit that a filter hides, and the row is not editing when All is chosen again (BR5.10)', async () => {
+    const user = userEvent.setup();
+    saveMixed();
+    render(<App />);
+    openEditFor(0);
+    await user.type(editInput(), ' typed');
+    await user.click(pick('completed'));
+    await user.click(pick('all'));
+    expect(screen.queryByTestId('task-edit-input')).not.toBeInTheDocument();
+    expect(titles()).toEqual(['Task number 1', 'Task number 2']);
+  });
+});
