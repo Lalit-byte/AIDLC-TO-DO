@@ -28,3 +28,10 @@ aidlc/diagnostics/
 node_modules/
 dist/
 coverage/
+
+# SQLite databases and journal files
+*.db
+*.db-wal
+*.db-shm
+backend/data/
+
