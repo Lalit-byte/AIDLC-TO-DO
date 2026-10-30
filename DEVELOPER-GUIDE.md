@@ -1,92 +1,135 @@
 # DEVELOPER GUIDE
 
-> How to pick up and finish a task on the Todo List frontend (phase 1). Read this once, then keep `docs/RULES.md` open while you work.
+> How to pick up and finish a task across Phase 1 (Frontend) and Phase 2 (Backend). Read this once, then keep `docs/RULES.md` open while you work.
+
+---
 
 ## Before you start (one time)
 
 1. Get access to the GitHub repository and clone it.
-2. Install dependencies: `npm install`
-3. Check that everything passes on your machine: `npm test` (all tests must pass before you change anything).
-4. Open the folder in Claude Code if you want help. The project rules are loaded from `.claude/` and `docs/RULES.md`.
-5. Read, in this order: `docs/MEMORY.md` (what has been decided), `docs/TASKS.md` (the board), `docs/RULES.md` (how we code), `docs/DESIGN.md` (how it looks), `docs/ARCHITECTURE.md` (how it is built).
+2. Install dependencies:
+   - Frontend: `npm install --prefix frontend`
+   - Root / Backend: `npm install` (once backend is set up)
+3. Check that everything passes on your machine:
+   - `npm test --prefix frontend` (all 247 tests must pass before you change anything).
+4. The project rules are loaded from `docs/RULES.md` and `.claude/` / `GEMINI.md`.
+5. Read, in this order:
+   - `docs/MEMORY.md` (what has been decided and completed)
+   - `docs/TASKS.md` (the shared board)
+   - `docs/RULES.md` (how we code and test)
+   - `docs/ARCHITECTURE.md` (system layout and shared data contracts)
+   - `docs/DESIGN.md` (UI rules, for frontend work)
 
-## How a task is assigned
+---
 
-- The lead puts your name on a row in `docs/TASKS.md`, for example `in-progress (Priya)`, and lists the files you will touch.
-- Do not start work that has no row, or a row with someone else's name.
-- Need a file that is not on your row? Ask the lead to add it first. Several tasks edit the same files, so this is how we avoid clashes.
-- Your task's design is in `aidlc/spaces/default/intents/261015-todo-frontend/construction/<unit>/functional-design/` (for example `construction/delete-task/functional-design/functional-spec.md`). The user stories and acceptance criteria are in `aidlc/spaces/default/intents/261015-todo-frontend/inception/user-stories/stories.md`. If your Unit has no design there yet, tell the lead and wait: the design comes first.
+## Multi-Developer Coordination & Task Claiming
 
-## Doing the task
+To prevent developers and AI agents from colliding or duplicating effort, we use the **Task Claim Lock** in `docs/TASKS.md` against GitHub:
 
-1. Update your local `main`: `git checkout main` then `git pull`.
-2. Make a short branch named after your task: `git checkout -b u3-delete-task`.
-3. Build the task. Follow the rules below.
-4. Write tests as you go (see Testing).
-5. Before every push, run all four checks and make sure each one passes:
-   - `npm test`
-   - `npm run lint`
-   - `npm run format:check` (fix with `npm run format`)
-   - `npm run build`
-6. Push your branch: `git push -u origin u3-delete-task`.
-7. Open a pull request on GitHub. Say which task it is, what you changed, and which acceptance criteria it covers.
-8. Keep your branch short-lived: merge within one to two days. Pull `main` into your branch often so conflicts stay small.
+```mermaid
+sequenceDiagram
+    autonumber
+    actor DevA as Developer A
+    participant GitHub as GitHub (master/main)
+    actor DevB as Developer B
+
+    DevA->>GitHub: git pull origin master
+    Note over DevA: Reads docs/TASKS.md<br/>Finds Task B1 (Status: todo)
+    DevA->>GitHub: Changes B1 to "in-progress (DevA)"<br/>git push origin master
+    Note over GitHub: Task B1 is now LOCKED by DevA
+
+    DevB->>GitHub: git pull origin master
+    Note over DevB: Sees B1 is "in-progress (DevA)"<br/>DevB skips B1 and claims B2 instead!
+```
+
+### How to claim a task:
+1. **Pull the latest `master` / `main`**:
+   ```bash
+   git checkout master
+   git pull origin master
+   ```
+2. **Find an unassigned task**: Check `docs/TASKS.md` for a row with `Status: todo` whose `Depends on` prerequisites are `done`.
+3. **Lock the task**: Change the status column from `todo` to `in-progress (<YourName>)` (e.g. `in-progress (Tarun)`).
+4. **Push your claim immediately**:
+   ```bash
+   git add docs/TASKS.md
+   git commit -m "chore: claim task B1 (Tarun)"
+   git push origin master
+   ```
+   *From this moment, all other developers and AI agents see that this task is locked.*
+
+### What if two developers claim the same task simultaneously?
+- Developer 1 pushes their claim commit first $\rightarrow$ succeeds.
+- Developer 2 tries to push their claim commit $\rightarrow$ Git rejects it (`[rejected - fetch first]`).
+- Developer 2 pulls (`git pull`), sees Developer 1 already claimed that task, and picks another available `todo` task. No collision!
+
+### Preventing Merge Conflicts via Strict File Isolation
+Every task on the board specifies an explicit list in the **Files** column:
+- **Rule of File Isolation**: You must touch **ONLY** the files listed on your claimed row.
+- If Developer A works on Task B2 (`backend/src/db/database.js`) and Developer B works on Task B3 (`backend/src/validators/titleValidator.js`), their changes are completely isolated. Both can develop in parallel and merge into `master` with **zero merge conflicts**.
+- Need to touch a file not listed on your row? Coordinate with the lead to update `docs/TASKS.md` before editing.
+
+---
+
+## The 6-Step Task Lifecycle
+
+1. **CLAIM**: Mark `in-progress (<YourName>)` in `docs/TASKS.md` and push to `master`.
+2. **BRANCH**: Create a short-lived branch for the task:
+   ```bash
+   git checkout -b task/b1-scaffold-backend
+   ```
+3. **DEVELOP**:
+   - Touch **only** the files assigned in `docs/TASKS.md`.
+   - Write tests alongside the implementation (TDD).
+   - Never alter the shared `Task` contract without owner approval.
+4. **VERIFY**: Run all checks before pushing:
+   - Frontend: `npm test --prefix frontend`, `npm run lint --prefix frontend`, `npm run build --prefix frontend`
+   - Backend: `npm test` from `backend/`
+   - All tests must pass; line coverage floor is 80%.
+5. **PR & SQUASH-MERGE**:
+   - Push your branch: `git push -u origin task/b1-scaffold-backend`
+   - Open a GitHub Pull Request detailing the task ID, changes, and acceptance checks.
+   - Squash-merge into `master` once approved and CI passes.
+6. **CLOSE & RECORD**:
+   - Set the task status to `done` in `docs/TASKS.md`.
+   - Append one dated entry to `docs/MEMORY.md` describing what was implemented.
+   - Update `docs/ARCHITECTURE.md` if any structural changes were introduced.
+   - Push updates to `master`.
+
+---
 
 ## Rules that are checked automatically
 
-These come from `docs/RULES.md` and the project's lint rules. A pull request that breaks them will not be merged.
+- **React Architecture**: Functional components and hooks only. One component per file, PascalCase file names, hooks start with `use`.
+- **Service Isolation**: Browser storage (`localStorage`) and network requests (`fetch`/`axios`) live **strictly** within services (`frontend/src/services/` or `backend/src/services/`). Components and hooks never access storage or network APIs directly.
+- **Validation**: Boundary validation is mandatory. Task titles must be trimmed and 1–200 characters.
+- **Security & Integrity**: Plain text rendering (no `dangerouslySetInnerHTML`). No hardcoded secrets or environment variables committed.
+- **Data Shape**: Fixed shared contract: `{ id, title, completed, createdAt, updatedAt }`. Do not alter this shape.
+- **Error Handling**: Graceful error surfacing to the UI; no silent `catch` blocks.
+- **Formatting & Linting**: Prettier formatting and ESLint must pass on both frontend and backend.
 
-- React functional components and hooks only. One component per file, PascalCase file names, hooks start with `use`.
-- Browser storage and network calls live only in `frontend/src/services/`. Components and hooks never touch `localStorage` or `fetch` (lint fails if they do).
-- Titles are trimmed and must be 1 to 200 characters. Validation happens in `frontend/src/services/titleRules.js`.
-- Show titles as plain text. Never insert raw HTML (lint fails if you do).
-- Handle and show errors. No silent `catch`.
-- No secrets in the code.
-- The task shape is fixed: `id`, `title`, `completed`, `createdAt`, `updatedAt`. Do not change it without the owner's approval.
-- Prettier formatting and ESLint must pass.
+---
 
-## Testing
+## Testing Standards
 
-- Every new component, hook or service function gets a happy-path test plus at least two edge or error cases.
-- Tests use Vitest and React Testing Library. Examples are next to the code (`*.test.js`, `*.test.jsx`).
-- Test the keyboard path for every control, and check accessibility with the existing axe helper in `frontend/src/test/axe.js`.
-- The coverage floor is 80% of lines. Never lower it, and never weaken or skip a test to make a check pass. If a check fails, fix the cause or tell the lead.
-- Run the whole suite, not only your tests, before you push.
+- Every new component, hook, or service function requires a **happy-path test plus at least two edge or error cases**.
+- Frontend uses Vitest + React Testing Library + Axe accessibility checks (`frontend/src/test/axe.js`).
+- Backend uses Vitest + Supertest for unit and route integration tests.
+- **Coverage floor is 80% of lines**. Never weaken or skip tests to make a check pass.
 
-## Accessibility and look
+---
 
-- Every control must work with the keyboard and show a visible focus ring.
-- Never show a state by colour alone (for example, completed tasks also get a line through the title).
-- Use the colours and spacing in `docs/DESIGN.md`. Text contrast must be at least 4.5 to 1.
+## Current Task Board State
 
-## When your pull request is merged
+- **Phase 1 (Frontend)**: All units (`U1` to `U9`, `T1` to `T8`) are **done** (247 tests passing at ~98% coverage).
+- **Phase 2 (Backend)**: In progress. Tasks available for claiming in `docs/TASKS.md`:
 
-- The lead squash-merges it, so your task becomes one commit on `main`.
-- The lead sets your row in `docs/TASKS.md` to `done` and adds a dated line to `docs/MEMORY.md`.
-- Pull `main` again before you pick up the next task.
-
-## What you do not touch
-
-- Do not edit `docs/PRD.md` or the task shape without owner approval.
-- Do not edit the `aidlc/` folder or `.claude/` unless the lead asks you to. The `aidlc/` files record the workflow for the whole team; two people changing them at once causes conflicts. The lead keeps them up to date.
-
-## Which task can I take?
-
-Finished and merged: U1 add-task, U2 complete-task. The rest can be taken in any order, but give one person at a time to Units that edit the same files:
-
-| Unit | What it does | Touches |
-|------|--------------|---------|
-| U3 delete-task | Delete with a confirmation dialog | TaskItem, App, useTasks, a new DeleteDialog |
-| U4 edit-task | Edit a title in place | TaskItem, useTasks |
-| U6 keep-tasks | Load and save failures, damaged data, two-tab sync | taskStorage, useTasks, a new MessageBar, App |
-| U5 filter-tasks | All / Active / Completed | a new FilterBar, useTasks, TaskList |
-| U7 count-remaining | "N items left" | a new Counter, useTasks |
-| U8 + U9 | "Saved in this browser only" line, empty-list message | App, TaskList |
-
-U6 changes the storage service, so only one person should work on it at a time.
-
-## Getting help
-
-- Ask the lead if a rule or design is unclear.
-- If you use Claude Code, tell it which task you were given and ask it to read `docs/RULES.md` and your Unit's design first.
-- If a check fails and you cannot see why, copy the output into your pull request and ask. Do not change the check.
+| ID | Task | Requirements | Assigned Files | Depends on |
+|---|---|---|---|---|
+| **B1** | Scaffold backend project (Express, SQLite, Vitest, Supertest) | BR-1, BR-2 | `backend/package.json`, `backend/src/app.js`, `backend/src/server.js` | - |
+| **B2** | SQLite DB initialization and schema migration | BR-2 | `backend/src/db/database.js`, `backend/tests/database.test.js` | B1 |
+| **B3** | Title validation rules (1-200 trimmed characters) | BR-3 | `backend/src/validators/titleValidator.js`, `backend/tests/titleValidator.test.js` | B1 |
+| **B4** | Task CRUD service (data access layer) + tests | BR-1, BR-2 | `backend/src/services/taskService.js`, `backend/tests/taskService.test.js` | B2, B3 |
+| **B5** | Express routes for `/api/tasks` + integration tests | BR-1, BR-4 | `backend/src/routes/taskRoutes.js`, `backend/tests/taskRoutes.test.js` | B4 |
+| **B6** | Frontend service integration (taskStorage API connection) + Vite proxy | BR-5, BR-6 | `frontend/src/services/taskStorage.js`, `frontend/vite.config.js` | B5 |
+| **B7** | End-to-end verification and full regression suite | all BR & FR | `frontend/`, `backend/` | B6 |
