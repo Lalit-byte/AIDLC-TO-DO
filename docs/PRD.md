@@ -8,8 +8,8 @@ People need a simple, fast way to capture tasks and track what is done.
 ## Phases
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 1 | Frontend (basic React, data kept in browser localStorage) | Not started |
-| 2 | Backend (REST API + database, frontend switched from localStorage to API) | Not started |
+| 1 | Frontend (basic React, data kept in browser localStorage) | Done |
+| 2 | Backend (REST API + database, frontend switched from localStorage to API) | In progress |
 
 ## Phase 1 requirements (frontend)
 | ID | Requirement | Pass/fail check |
@@ -22,14 +22,20 @@ People need a simple, fast way to capture tasks and track what is done.
 | FR-6 | Persist across page reloads | Reload shows same tasks (localStorage) |
 | FR-7 | Show count of remaining active tasks | Count updates on every change |
 
-## Phase 2 requirements (backend, outline only)
-- BR-1 CRUD API for tasks matching the Task shape in ARCHITECTURE.md.
-- BR-2 Persistent storage; frontend storage layer swapped without UI changes.
-- Details are written when Phase 2 starts.
+## Phase 2 requirements (backend)
+| ID | Requirement | Pass/fail check |
+|----|-------------|-----------------|
+| BR-1 | CRUD REST API for tasks | Endpoints for list, create, update, delete match Task shape in ARCHITECTURE.md |
+| BR-2 | Persistent SQLite database | Tasks survive backend server restarts |
+| BR-3 | Boundary input validation | Title trimmed, 1-200 characters; invalid inputs return 400 with error message |
+| BR-4 | Standardized error handling | 400 for bad requests, 404 for not found, 500 for server errors |
+| BR-5 | Frontend API integration | Frontend uses backend API; UI functionality remains unchanged |
+| BR-6 | CORS & Dev config | Frontend development server can communicate with backend seamlessly |
 
 ## Out of scope (for now)
 Users/auth, due dates, tags, drag-and-drop ordering, offline sync.
 
 ## Success metrics
 - All FR items pass their check.
+- All BR items pass their check.
 - Add/toggle/delete feel instant (< 100 ms UI response).

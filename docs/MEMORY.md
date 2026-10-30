@@ -3,13 +3,14 @@
 > Running log of decisions and what has changed. Read this first in every session. Append only; newest at the bottom. One line per entry, keep it short.
 
 ## Current state
-- Phase: 1 (frontend), AI-DLC intent `261015-todo-frontend` (scope: mvp), at the first stage (intent capture).
-- No application code written yet.
+- Phase: 2 (backend), AI-DLC intent `261030-todo-backend` (scope: mvp), at stage 1.1 (intent-capture).
+- Stack: Node.js, Express, SQLite (`better-sqlite3`), Vitest & Supertest.
 
 ## Decisions
 - 2026-10-15: Basic React (Vite, plain CSS). Storage in localStorage behind `src/services/taskStorage.js`.
 - 2026-10-15: Git not enabled yet (solo developer). Enable before a second developer joins.
 - 2026-10-15: Phase 2 (backend) will be a separate AI-DLC intent started after Phase 1 is done.
+- 2026-10-30: Phase 2 backend stack agreed: Node.js, Express, SQLite (`better-sqlite3`), Supertest + Vitest. SQLite WAL mode for concurrency and durability. REST endpoints: `GET/POST /api/tasks`, `PATCH/DELETE /api/tasks/:id`.
 
 ## Change log
 - 2026-10-15: Created PRD.md, ARCHITECTURE.md, RULES.md, DESIGN.md, TASKS.md, MEMORY.md.
@@ -24,3 +25,5 @@
 - 2026-10-23: count-remaining (U7) built and approved: useTasks returns remaining (from the full list), Counter shows 'N items left' in a summary line below the list (status role, polite); 230 tests pass. AC7.1.4 (count unchanged by filter) is handed to filter-tasks. Counter uses normal text color, not muted (design owner to confirm). Real-browser screen-reader/look/contrast check pending.
 - 2026-10-26: filter-tasks (U5) built and approved on branch task-filter: useTasks filter/setFilter/visibleTasks (hasTasks and remaining stay from the full list), FilterBar (All, Active, Completed) beside the count, 'No tasks match this filter.' in TaskList, focus move when a tick hides a row; 247 tests, about 98% line coverage. The AC7.1.4 count test is closed (BR5.6). Pending: real-browser look of the buttons, focus ring, contrast. The 'under 100 ms' guards in App.test.jsx can miss by a few ms when the whole suite runs at once (pass alone).
 - 2026-10-26: Build and Test and CI Pipeline done; mvp workflow complete. Build and Test: all automated checks passed (247 tests, 97.96% lines), failure accepted with open items (10 real-browser checks, lean test volume, AC2.1.2/AC6.1.5/AC7.1.4/AC9.1.1 records). CI: no server; one local command 'npm run verify --prefix frontend' (format, lint, tests, coverage gate without the 100 ms speed guards, build); speed guards run in the plain test step because coverage slows them. Git is not yet initialised; hosting for phase 1 undecided.
+- 2026-10-30: Started Phase 2: Backend. Initialized AI-DLC intent `261030-todo-backend`. Stack selected: Node.js, Express, SQLite (`better-sqlite3`), Vitest + Supertest. Updated PRD.md (BR-1..BR-6), ARCHITECTURE.md (backend layout, database, API contract), and TASKS.md with tasks B1 through B7.
+- 2026-10-30: Task B1 (scaffold backend project) built and verified. Express app initialized with CORS, JSON body parser, and GET /health check. Supertest integration tests written and passing (100% line/stmt/branch/func coverage). Backend vitest configured with 80% coverage threshold. Frontend regression suite verified (all 247 tests pass).
