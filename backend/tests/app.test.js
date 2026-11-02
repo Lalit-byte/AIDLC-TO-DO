@@ -12,8 +12,15 @@ describe('Express App Base & Health Check', () => {
     expect(new Date(res.body.timestamp).toString()).not.toBe('Invalid Date');
   });
 
-  it('GET /unknown-route returns 404', async () => {
+  it('GET /unknown-route returns 404 (BR-4)', async () => {
     const res = await request(app).get('/unknown-route');
     expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Not found' });
+  });
+
+  it('POST /unknown-route returns 404', async () => {
+    const res = await request(app).post('/unknown-route').send({ any: 'data' });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Not found' });
   });
 });
