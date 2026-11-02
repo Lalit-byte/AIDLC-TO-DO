@@ -1,11 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeTask, makeTasks, savedText } from '../test/tasks.js';
 import {
+  API_BASE_URL,
   BACKUP_PREFIX,
   createTaskStorage,
+  createTaskViaApi,
+  deleteTaskViaApi,
+  fetchTasksFromApi,
   isValidTask,
   STORAGE_KEY,
   TaskStorage,
+  updateTaskViaApi,
 } from './taskStorage.js';
 
 afterEach(() => {
@@ -373,5 +378,166 @@ describe('TaskStorage shape and exports', () => {
     expect(isValidTask([])).toBe(false);
     expect(isValidTask('task')).toBe(false);
     expect(isValidTask(makeTask())).toBe(true);
+  });
+});
+
+describe('TaskStorage REST API integration (BR-5)', () => {
+  it('fetchTasksFromApi retrieves tasks on success', async () => {
+    const mockTasks = [makeTask({ id: '1', title: 'Task 1' })];
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockTasks,
+    });
+
+    const result = await fetchTasksFromApi();
+    expect(result).toEqual({ ok: true, tasks: mockTasks });
+    expect(fetch).toHaveBeenCalledWith(API_BASE_URL);
+  });
+
+  it('fetchTasksFromApi handles non-ok response and network errors', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+
+    const failureRes = await fetchTasksFromApi();
+    expect(failureRes.ok).toBe(false);
+    expect(failureRes.status).toBe(500);
+
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
+    const networkRes = await fetchTasksFromApi();
+    expect(networkRes).toEqual({ ok: false, error: 'Connection refused' });
+  });
+
+  it('createTaskViaApi posts new task with JSON payload', async () => {
+    const created = makeTask({ id: '10', title: 'Created via API' });
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => created,
+    });
+
+    const result = await createTaskViaApi('Created via API');
+    expect(result).toEqual({ ok: true, task: created });
+    expect(fetch).toHaveBeenCalledWith(API_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Created via API' }),
+    });
+  });
+
+  it('createTaskViaApi handles validation error response', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: 'Title cannot be empty', reason: 'empty' }),
+    });
+
+    const result = await createTaskViaApi('');
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: 'Title cannot be empty',
+      reason: 'empty',
+    });
+
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network down'));
+    const netErr = await createTaskViaApi('test');
+    expect(netErr).toEqual({ ok: false, error: 'Network down' });
+  });
+
+  it('updateTaskViaApi sends PATCH request with updates', async () => {
+    const updated = makeTask({ id: '10', title: 'New', completed: true });
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => updated,
+    });
+
+    const result = await updateTaskViaApi('10', { completed: true });
+    expect(result).toEqual({ ok: true, task: updated });
+    expect(fetch).toHaveBeenCalledWith(`${API_BASE_URL}/10`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: true }),
+    });
+  });
+
+  it('updateTaskViaApi handles error response', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: 'Task not found' }),
+    });
+
+    const result = await updateTaskViaApi('non-existent', { title: 'Test' });
+    expect(result).toEqual({
+      ok: false,
+      status: 404,
+      error: 'Task not found',
+      reason: undefined,
+    });
+
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network failed'));
+    const netErr = await updateTaskViaApi('1', { completed: true });
+    expect(netErr).toEqual({ ok: false, error: 'Network failed' });
+  });
+
+  it('deleteTaskViaApi sends DELETE request', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ message: 'Task deleted successfully' }),
+    });
+
+    const result = await deleteTaskViaApi('10');
+    expect(result).toEqual({ ok: true, message: 'Task deleted successfully' });
+    expect(fetch).toHaveBeenCalledWith(`${API_BASE_URL}/10`, {
+      method: 'DELETE',
+    });
+  });
+
+  it('deleteTaskViaApi handles error response', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: 'Task not found' }),
+    });
+
+    const result = await deleteTaskViaApi('10');
+    expect(result).toEqual({ ok: false, status: 404, error: 'Task not found' });
+
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Fetch failed'));
+    const netErr = await deleteTaskViaApi('10');
+    expect(netErr).toEqual({ ok: false, error: 'Fetch failed' });
+  });
+
+  it('TaskStorage instance exposes api methods and sync', async () => {
+    const storage = createTaskStorage();
+    expect(typeof storage.api.list).toBe('function');
+    expect(typeof storage.api.create).toBe('function');
+    expect(typeof storage.api.update).toBe('function');
+    expect(typeof storage.api.remove).toBe('function');
+    expect(typeof storage.sync).toBe('function');
+
+    const serverTasks = [makeTask({ id: 's1', title: 'Server task' })];
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => serverTasks,
+    });
+
+    const syncRes = await storage.sync();
+    expect(syncRes).toEqual({ ok: true, tasks: serverTasks });
+
+    // Local load should now reflect synced tasks
+    expect(storage.load()).toEqual({ ok: true, tasks: serverTasks });
+  });
+
+  it('sync returns error if api list fails', async () => {
+    const storage = createTaskStorage();
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+
+    const syncRes = await storage.sync();
+    expect(syncRes.ok).toBe(false);
   });
 });

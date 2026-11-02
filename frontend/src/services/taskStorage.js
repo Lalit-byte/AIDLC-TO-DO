@@ -1,11 +1,12 @@
-// Storage service (contract C3). The ONLY place that touches browser storage.
-// Rules: BR1.10 to BR1.15, BR6.9 to BR6.15, NFR6.1, NFR8.1, NFR8.2.
+// Storage service (contract C3). The ONLY place that touches browser storage or the REST API.
+// Rules: BR1.10 to BR1.15, BR6.9 to BR6.15, BR-5, BR-6, NFR6.1, NFR8.1, NFR8.2.
 
 import { checkTitle } from './titleRules.js';
 
 export const STORAGE_KEY = 'todo-app.tasks';
 export const BACKUP_PREFIX = 'todo-app.tasks.damaged.';
 export const SAVED_VERSION = 1;
+export const API_BASE_URL = '/api/tasks';
 
 const TASK_KEYS = ['completed', 'createdAt', 'id', 'title', 'updatedAt'];
 const ISO_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
@@ -70,10 +71,114 @@ function getStorage() {
 }
 
 /**
+ * Fetch all tasks from the backend REST API (BR-5).
+ * @param {string} [baseUrl]
+ * @returns {Promise<{ ok: true, tasks: object[] } | { ok: false, error: string, status?: number }>}
+ */
+export async function fetchTasksFromApi(baseUrl = API_BASE_URL) {
+  try {
+    const res = await fetch(baseUrl);
+    if (!res.ok) {
+      return { ok: false, error: 'Failed to fetch tasks', status: res.status };
+    }
+    const data = await res.json();
+    return { ok: true, tasks: data };
+  } catch (err) {
+    return { ok: false, error: err.message || 'Network error' };
+  }
+}
+
+/**
+ * Creates a new task via the backend REST API (BR-3, BR-5).
+ * @param {string} title
+ * @param {string} [baseUrl]
+ * @returns {Promise<{ ok: true, task: object } | { ok: false, error: string, reason?: string, status?: number }>}
+ */
+export async function createTaskViaApi(title, baseUrl = API_BASE_URL) {
+  try {
+    const res = await fetch(baseUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data.error || 'Failed to create task',
+        reason: data.reason,
+        status: res.status,
+      };
+    }
+    return { ok: true, task: data };
+  } catch (err) {
+    return { ok: false, error: err.message || 'Network error' };
+  }
+}
+
+/**
+ * Updates a task via the backend REST API (BR-1, BR-5).
+ * @param {string} id
+ * @param {{ title?: string, completed?: boolean }} updates
+ * @param {string} [baseUrl]
+ * @returns {Promise<{ ok: true, task: object } | { ok: false, error: string, reason?: string, status?: number }>}
+ */
+export async function updateTaskViaApi(id, updates, baseUrl = API_BASE_URL) {
+  try {
+    const res = await fetch(`${baseUrl}/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data.error || 'Failed to update task',
+        reason: data.reason,
+        status: res.status,
+      };
+    }
+    return { ok: true, task: data };
+  } catch (err) {
+    return { ok: false, error: err.message || 'Network error' };
+  }
+}
+
+/**
+ * Deletes a task via the backend REST API (BR-1, BR-5).
+ * @param {string} id
+ * @param {string} [baseUrl]
+ * @returns {Promise<{ ok: true, message: string } | { ok: false, error: string, status?: number }>}
+ */
+export async function deleteTaskViaApi(id, baseUrl = API_BASE_URL) {
+  try {
+    const res = await fetch(`${baseUrl}/${id}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data.error || 'Failed to delete task',
+        status: res.status,
+      };
+    }
+    return { ok: true, message: data.message || 'Task deleted successfully' };
+  } catch (err) {
+    return { ok: false, error: err.message || 'Network error' };
+  }
+}
+
+/**
  * Create a storage service. The app uses the single instance `TaskStorage`;
  * tests create their own so that no unreadable-text state leaks between them.
+ *
+ * @param {{ apiBase?: string }} [options]
  */
-export function createTaskStorage() {
+export function createTaskStorage(options = {}) {
+  const apiBase = options.apiBase || API_BASE_URL;
+
   // Unreadable text kept in memory after a failed load (BR1.13). Only this service owns it.
   let unreadable = null; // { text: string, backedUp: boolean } | null
 
@@ -199,7 +304,38 @@ export function createTaskStorage() {
     return { ok: true };
   }
 
-  return { load, save, subscribe, checkTitle };
+  // REST API methods (BR-5: Storage behind a service)
+  const api = {
+    list: (url = apiBase) => fetchTasksFromApi(url),
+    create: (title, url = apiBase) => createTaskViaApi(title, url),
+    update: (id, updates, url = apiBase) => updateTaskViaApi(id, updates, url),
+    remove: (id, url = apiBase) => deleteTaskViaApi(id, url),
+  };
+
+  /**
+   * Syncs with the backend REST API: retrieves server tasks and saves to local cache.
+   */
+  async function sync(url = apiBase) {
+    const result = await api.list(url);
+    if (result.ok && Array.isArray(result.tasks)) {
+      save(result.tasks);
+      return { ok: true, tasks: result.tasks };
+    }
+    return result;
+  }
+
+  return {
+    load,
+    save,
+    subscribe,
+    checkTitle,
+    api,
+    list: api.list,
+    create: api.create,
+    update: api.update,
+    remove: api.remove,
+    sync,
+  };
 }
 
 export const TaskStorage = createTaskStorage();
