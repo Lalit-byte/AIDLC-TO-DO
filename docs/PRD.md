@@ -9,7 +9,7 @@ People need a simple, fast way to capture tasks and track what is done.
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 1 | Frontend (basic React, data kept in browser localStorage) | Done |
-| 2 | Backend (REST API + database, frontend switched from localStorage to API) | In progress |
+| 2 | Backend (REST API + database, frontend switched from localStorage to API) | Done |
 
 ## Phase 1 requirements (frontend)
 | ID | Requirement | Pass/fail check |
