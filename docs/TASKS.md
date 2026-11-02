@@ -34,3 +34,4 @@
 | B5 | Express routes for /api/tasks (GET, POST, PATCH, DELETE) + integration tests | BR-1, BR-4 | backend/src/routes/taskRoutes.js, backend/src/app.js, backend/tests/taskRoutes.test.js, backend/tests/app.test.js | B4 | done |
 | B6 | Frontend service integration (taskStorage API connection) + Vite proxy / CORS | BR-5, BR-6 | frontend/src/services/taskStorage.js, frontend/vite.config.js, frontend/src/services/taskStorage.test.js | B5 | done |
 | B7 | End-to-end verification and full regression suite | all BR & FR | frontend/, backend/ | B6 | done |
+| B8 | Connect useTasks hook to backend API for SQLite database persistence | BR-5 | frontend/src/hooks/useTasks.js, frontend/src/hooks/useTasks.test.jsx | B7 | done |

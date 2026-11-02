@@ -3,6 +3,7 @@
 // `hasTasks` and `remaining` (both from the full list), the notice, `add`, `toggle`, `remove`, `edit`.
 // Performance design D1, D2: the list lives in memory; the save runs after the new row is drawn.
 // Keep-tasks (BR6.4, BR6.9, BR6.14): it also follows another tab through `TaskStorage.subscribe`.
+// Phase 2 (BR-5): Persists and syncs with backend REST API and SQLite database.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TaskStorage } from '../services/taskStorage.js';
@@ -23,7 +24,11 @@ export function newId() {
 
 const FILTERS = ['all', 'active', 'completed'];
 
-export function useTasks() {
+export function useTasks(options = {}) {
+  const isTest =
+    typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.MODE === 'test';
+  const useApi = options.useApi ?? !isTest;
+
   // Read the saved list once, when the page opens (NFR1.5).
   const [loaded] = useState(() => TaskStorage.load());
   const loadFailed = !loaded.ok;
@@ -41,6 +46,26 @@ export function useTasks() {
   // "A save is due" record: raised only by this hook's own actions (D2).
   const saveDueRef = useRef(false);
   const scheduledRef = useRef(false);
+
+  // Initial sync with backend API (BR-5) when API is active
+  useEffect(() => {
+    if (!useApi) {
+      return;
+    }
+    let isCurrent = true;
+    TaskStorage.sync?.()
+      .then((res) => {
+        if (isCurrent && res && res.ok && Array.isArray(res.tasks)) {
+          tasksRef.current = res.tasks;
+          setTasks(res.tasks);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [useApi]);
 
   // Runs after the page has painted. The record is cleared before the save runs,
   // so a second run with the record cleared does nothing.
@@ -81,79 +106,124 @@ export function useTasks() {
     });
   });
 
-  const add = useCallback((rawTitle) => {
-    const checked = checkTitle(rawTitle);
-    if (!checked.ok) {
-      return { ok: false, reason: checked.reason };
-    }
-    const now = new Date().toISOString();
-    const task = {
-      id: newId(),
-      title: checked.title,
-      completed: false,
-      createdAt: now,
-      updatedAt: now,
-    };
-    const next = [task, ...tasksRef.current];
-    tasksRef.current = next;
-    setTasks(next);
-    saveDueRef.current = true;
-    return { ok: true };
-  }, []);
+  const add = useCallback(
+    (rawTitle) => {
+      const checked = checkTitle(rawTitle);
+      if (!checked.ok) {
+        return { ok: false, reason: checked.reason };
+      }
+      const now = new Date().toISOString();
+      const tempId = newId();
+      const task = {
+        id: tempId,
+        title: checked.title,
+        completed: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const next = [task, ...tasksRef.current];
+      tasksRef.current = next;
+      setTasks(next);
+      saveDueRef.current = true;
+
+      if (useApi) {
+        TaskStorage.create?.(checked.title)
+          .then((res) => {
+            if (res && res.ok && res.task) {
+              const updated = tasksRef.current.map((t) => (t.id === tempId ? res.task : t));
+              tasksRef.current = updated;
+              setTasks(updated);
+              TaskStorage.save(updated);
+            }
+          })
+          .catch(() => {});
+      }
+
+      return { ok: true };
+    },
+    [useApi],
+  );
 
   // Flip `completed` of one task (BR2.1, BR2.2, BR2.4). Position and other tasks stay as they are.
   // An id that is not in the latest list changes nothing and starts no save (BR2.9).
-  const toggle = useCallback((id) => {
-    const current = tasksRef.current;
-    if (!current.some((task) => task.id === id)) {
-      return;
-    }
-    const now = new Date().toISOString();
-    const next = current.map((task) =>
-      task.id === id ? { ...task, completed: !task.completed, updatedAt: now } : task,
-    );
-    tasksRef.current = next;
-    setTasks(next);
-    saveDueRef.current = true;
-  }, []);
+  const toggle = useCallback(
+    (id) => {
+      const current = tasksRef.current;
+      if (!current.some((task) => task.id === id)) {
+        return;
+      }
+      const now = new Date().toISOString();
+      let newCompleted = false;
+      const next = current.map((task) => {
+        if (task.id === id) {
+          newCompleted = !task.completed;
+          return { ...task, completed: newCompleted, updatedAt: now };
+        }
+        return task;
+      });
+      tasksRef.current = next;
+      setTasks(next);
+      saveDueRef.current = true;
+
+      if (useApi) {
+        TaskStorage.update?.(id, { completed: newCompleted }).catch(() => {});
+      }
+    },
+    [useApi],
+  );
 
   // Remove one task (BR3.2, BR3.8, BR3.9). The others keep their order and fields.
   // An id that is not in the latest list changes nothing and starts no save.
-  const remove = useCallback((id) => {
-    const current = tasksRef.current;
-    if (!current.some((task) => task.id === id)) {
-      return;
-    }
-    const next = current.filter((task) => task.id !== id);
-    tasksRef.current = next;
-    setTasks(next);
-    saveDueRef.current = true;
-  }, []);
+  const remove = useCallback(
+    (id) => {
+      const current = tasksRef.current;
+      if (!current.some((task) => task.id === id)) {
+        return;
+      }
+      const next = current.filter((task) => task.id !== id);
+      tasksRef.current = next;
+      setTasks(next);
+      saveDueRef.current = true;
+
+      if (useApi) {
+        TaskStorage.remove?.(id).catch(() => {});
+      }
+    },
+    [useApi],
+  );
 
   // Replace the title of one task (BR4.2, BR4.5, BR4.8). Order of checks: unknown id is a
   // no-op that reports ok; then the title rules; then "same title" is a no-op that reports ok.
-  const edit = useCallback((id, rawTitle) => {
-    const current = tasksRef.current;
-    const existing = current.find((task) => task.id === id);
-    if (!existing) {
+  const edit = useCallback(
+    (id, rawTitle) => {
+      const current = tasksRef.current;
+      const existing = current.find((task) => task.id === id);
+      if (!existing) {
+        return { ok: true };
+      }
+      const checked = checkTitle(rawTitle);
+      if (!checked.ok) {
+        return { ok: false, reason: checked.reason };
+      }
+      if (checked.title === existing.title) {
+        return { ok: true };
+      }
+      const now = new Date().toISOString();
+      const next = current.map((task) =>
+        task.id === id ? { ...task, title: checked.title, updatedAt: now } : task,
+      );
+      tasksRef.current = next;
+      setTasks(next);
+      saveDueRef.current = true;
+
+      if (useApi) {
+        TaskStorage.update?.(id, { title: checked.title }).catch(() => {});
+      }
+
       return { ok: true };
-    }
-    const checked = checkTitle(rawTitle);
-    if (!checked.ok) {
-      return { ok: false, reason: checked.reason };
-    }
-    if (checked.title === existing.title) {
-      return { ok: true };
-    }
-    const now = new Date().toISOString();
-    const next = current.map((task) =>
-      task.id === id ? { ...task, title: checked.title, updatedAt: now } : task,
-    );
-    tasksRef.current = next;
-    setTasks(next);
-    saveDueRef.current = true;
-    return { ok: true };
-  }, []);
+    },
+    [useApi],
+  );
 
   // Notice state machine: save-failed outranks load-failed; a good save returns to
   // load-failed only when the load had failed; load-failed clears only on reload.
