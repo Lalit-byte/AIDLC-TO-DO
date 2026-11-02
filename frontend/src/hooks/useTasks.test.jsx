@@ -719,3 +719,103 @@ describe('newId', () => {
     expect(first).not.toBe(second);
   });
 });
+
+describe('useTasks: backend API integration (BR-5)', () => {
+  it('syncs with TaskStorage.sync on mount when useApi is true', async () => {
+    const serverTask = makeTask({ id: 'srv-1', title: 'Server item' });
+    const syncSpy = vi.spyOn(TaskStorage, 'sync').mockResolvedValue({
+      ok: true,
+      tasks: [serverTask],
+    });
+
+    const { result } = renderHook(() => useTasks({ useApi: true }));
+    await waitFor(() => {
+      expect(result.current.visibleTasks).toEqual([serverTask]);
+    });
+    expect(syncSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls TaskStorage.create when adding a task and replaces temporary id', async () => {
+    const createdServerTask = makeTask({ id: 'srv-created', title: 'API Task' });
+    const createSpy = vi.spyOn(TaskStorage, 'create').mockResolvedValue({
+      ok: true,
+      task: createdServerTask,
+    });
+
+    const { result } = renderHook(() => useTasks({ useApi: true }));
+    act(() => {
+      result.current.add('API Task');
+    });
+
+    expect(createSpy).toHaveBeenCalledWith('API Task');
+    await waitFor(() => {
+      expect(result.current.visibleTasks[0].id).toBe('srv-created');
+    });
+  });
+
+  it('calls TaskStorage.update when toggling a task', async () => {
+    const task = makeTask({ id: 't-1', completed: false });
+    localStorage.setItem(STORAGE_KEY, savedText([task]));
+    const updateSpy = vi.spyOn(TaskStorage, 'update').mockResolvedValue({
+      ok: true,
+      task: { ...task, completed: true },
+    });
+
+    const { result } = renderHook(() => useTasks({ useApi: true }));
+    act(() => {
+      result.current.toggle('t-1');
+    });
+
+    expect(updateSpy).toHaveBeenCalledWith('t-1', { completed: true });
+    expect(result.current.visibleTasks[0].completed).toBe(true);
+  });
+
+  it('calls TaskStorage.update when editing a task title', async () => {
+    const task = makeTask({ id: 't-2', title: 'Old title' });
+    localStorage.setItem(STORAGE_KEY, savedText([task]));
+    const updateSpy = vi.spyOn(TaskStorage, 'update').mockResolvedValue({
+      ok: true,
+      task: { ...task, title: 'New title' },
+    });
+
+    const { result } = renderHook(() => useTasks({ useApi: true }));
+    act(() => {
+      result.current.edit('t-2', 'New title');
+    });
+
+    expect(updateSpy).toHaveBeenCalledWith('t-2', { title: 'New title' });
+    expect(result.current.visibleTasks[0].title).toBe('New title');
+  });
+
+  it('calls TaskStorage.remove when deleting a task', async () => {
+    const task = makeTask({ id: 't-3', title: 'To Delete' });
+    localStorage.setItem(STORAGE_KEY, savedText([task]));
+    const removeSpy = vi.spyOn(TaskStorage, 'remove').mockResolvedValue({
+      ok: true,
+      message: 'Deleted',
+    });
+
+    const { result } = renderHook(() => useTasks({ useApi: true }));
+    act(() => {
+      result.current.remove('t-3');
+    });
+
+    expect(removeSpy).toHaveBeenCalledWith('t-3');
+    expect(result.current.visibleTasks).toEqual([]);
+  });
+
+  it('survives API failures gracefully without crashing local UI', async () => {
+    vi.spyOn(TaskStorage, 'create').mockRejectedValue(new Error('Network error'));
+    vi.spyOn(TaskStorage, 'update').mockRejectedValue(new Error('Network error'));
+    vi.spyOn(TaskStorage, 'remove').mockRejectedValue(new Error('Network error'));
+    vi.spyOn(TaskStorage, 'sync').mockRejectedValue(new Error('Network error'));
+
+    const { result } = renderHook(() => useTasks({ useApi: true }));
+    let outcome;
+    act(() => {
+      outcome = result.current.add('Offline resilience');
+    });
+    expect(outcome).toEqual({ ok: true });
+    expect(result.current.visibleTasks[0].title).toBe('Offline resilience');
+  });
+});
