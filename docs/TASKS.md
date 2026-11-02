@@ -29,7 +29,7 @@
 |----|------|-------------|-------|------------|--------|
 | B1 | Scaffold backend project (Express, SQLite, Vitest, Supertest, ESLint) | BR-1, BR-2 | backend/package.json, backend/src/app.js, backend/src/server.js | - | done |
 | B2 | SQLite database initialization and schema migration | BR-2 | backend/src/db/database.js, backend/tests/database.test.js | B1 | done |
-| B3 | Title validation rules (1-200 trimmed characters) | BR-3 | backend/src/validators/titleValidator.js, backend/tests/titleValidator.test.js | B1 | in-progress (Tarun) |
+| B3 | Title validation rules (1-200 trimmed characters) | BR-3 | backend/src/validators/titleValidator.js, backend/tests/titleValidator.test.js | B1 | done |
 | B4 | Task CRUD service (data access layer) + tests | BR-1, BR-2 | backend/src/services/taskService.js, backend/tests/taskService.test.js | B2, B3 | todo |
 | B5 | Express routes for /api/tasks (GET, POST, PATCH, DELETE) + integration tests | BR-1, BR-4 | backend/src/routes/taskRoutes.js, backend/tests/taskRoutes.test.js | B4 | todo |
 | B6 | Frontend service integration (taskStorage API connection) + Vite proxy / CORS | BR-5, BR-6 | frontend/src/services/taskStorage.js, frontend/vite.config.js | B5 | todo |
