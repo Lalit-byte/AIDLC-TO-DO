@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archify — Web Request &amp; Cache-Aside Pattern (Browser &rarr; API &rarr; Redis &rarr; PostgreSQL)</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --bg-card: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --border-color: #334155;
+      --accent-blue: #38bdf8;
+      --accent-indigo: #818cf8;
+      --accent-emerald: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-rose: #f43f5e;
+      --accent-purple: #c084fc;
+      --node-browser: #0284c7;
+      --node-api: #6366f1;
+      --node-redis: #dc2626;
+      --node-postgres: #2563eb;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #f1f5f9;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+      --border-color: #e2e8f0;
+      --accent-blue: #0284c7;
+      --accent-indigo: #4f46e5;
+      --accent-emerald: #059669;
+      --accent-amber: #d97706;
+      --accent-rose: #e11d48;
+      --accent-purple: #9333ea;
+      --node-browser: #0284c7;
+      --node-api: #4f46e5;
+      --node-redis: #b91c1c;
+      --node-postgres: #1d4ed8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--accent-rose), var(--accent-amber));
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.825rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+
+    .btn:hover {
+      background: var(--border-color);
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: #fff;
+      border-color: var(--accent-blue);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-miss {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--accent-rose);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+
+    .badge-hit {
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+
+    /* Architecture Nodes Diagram */
+    .nodes-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+
+    @media (max-width: 900px) {
+      .nodes-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .actor-node {
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .actor-node:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.2);
+    }
+
+    .actor-node.active {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+    }
+
+    .actor-node.highlight-step {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    .actor-icon {
+      font-size: 1.75rem;
+      line-height: 1;
+    }
+
+    .actor-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .actor-role {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      background: var(--bg-tertiary);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      display: inline-block;
+      width: fit-content;
+    }
+
+    .actor-desc {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .actor-tech {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--accent-indigo);
+      margin-top: auto;
+    }
+
+    /* Interactive Stepper Layout */
+    .stepper-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .stepper-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stepper-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      background: var(--bg-secondary);
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .step-indicator {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-left: auto;
+    }
+
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: relative;
+      padding-left: 2rem;
+    }
+
+    .step-list::before {
+      content: '';
+      position: absolute;
+      left: 0.7rem;
+      top: 0.5rem;
+      bottom: 0.5rem;
+      width: 2px;
+      background: var(--border-color);
+    }
+
+    .step-card {
+      position: relative;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.15rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .step-card:hover {
+      border-color: var(--accent-blue);
+    }
+
+    .step-card.active-step {
+      border-color: var(--accent-blue);
+      background: rgba(56, 189, 248, 0.05);
+      box-shadow: 0 0 0 1px var(--accent-blue);
+    }
+
+    .step-bullet {
+      position: absolute;
+      left: -2rem;
+      top: 1.15rem;
+      width: 1.45rem;
+      height: 1.45rem;
+      border-radius: 50%;
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .step-card.active-step .step-bullet {
+      border-color: var(--accent-blue);
+      background: var(--accent-blue);
+      color: #fff;
+    }
+
+    .step-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .step-card-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .step-route-tag {
+      font-size: 0.725rem;
+      font-family: var(--font-mono);
+      background: var(--bg-tertiary);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      color: var(--accent-indigo);
+    }
+
+    .step-card-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .code-box {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.6rem 0.8rem;
+      font-family: var(--font-mono);
+      font-size: 0.775rem;
+      color: var(--accent-emerald);
+      overflow-x: auto;
+    }
+
+    /* Inspector Panel */
+    .inspector {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      position: sticky;
+      top: 5.5rem;
+      height: fit-content;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .inspector-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .prop-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .prop-label {
+      font-size: 0.725rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+    }
+
+    .prop-val {
+      font-family: var(--font-mono);
+      background: var(--bg-tertiary);
+      padding: 0.4rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: var(--text-main);
+      word-break: break-all;
+    }
+
+    /* Comparison Table */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-top: 1rem;
+    }
+
+    .comp-table th, .comp-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    .comp-table th {
+      background: var(--bg-tertiary);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      background: var(--bg-secondary);
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <span class="brand-badge">Archify Pattern</span>
+      <div>
+        <h1>Cache-Aside Pattern: Web Request &amp; Database Fallback</h1>
+        <p>Browser &rarr; API Gateway &rarr; Redis Cache Miss &rarr; PostgreSQL Read &rarr; Cache Invalidation/Fill</p>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <a href="index.html" class="btn">&larr; Back to System Architecture</a>
+      <button class="btn" id="themeBtn">
+        <span id="themeIcon">☀️ Light</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+
+    <!-- Top Architecture Flow Grid -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>Component Topology &amp; Communication Boundaries</span>
+          <span class="badge badge-miss">Cache Miss Workflow</span>
+        </div>
+        <div style="font-size: 0.825rem; color: var(--text-muted);">
+          Click any component to inspect protocols, connection pools, and error strategies
+        </div>
+      </div>
+
+      <div class="nodes-container">
+        <!-- 1. Browser -->
+        <div class="actor-node" id="node-browser" onclick="inspectActor('browser')">
+          <div class="actor-icon">🌐</div>
+          <div class="actor-name">Web Browser / Client</div>
+          <span class="actor-role">HTTP Consumer</span>
+          <p class="actor-desc">Dispatches HTTP requests (e.g., <code>GET /api/v1/tasks/101</code>) and awaits JSON payload.</p>
+          <div class="actor-tech">REST / JSON over HTTPS</div>
+        </div>
+
+        <!-- 2. API Server -->
+        <div class="actor-node" id="node-api" onclick="inspectActor('api')">
+          <div class="actor-icon">⚡</div>
+          <div class="actor-name">API Server / Gateway</div>
+          <span class="actor-role">Orchestrator</span>
+          <p class="actor-desc">Coordinates cache inspection, database queries, payload serialization, and cache population.</p>
+          <div class="actor-tech">Node.js Express / Go / FastAPI</div>
+        </div>
+
+        <!-- 3. Redis -->
+        <div class="actor-node" id="node-redis" onclick="inspectActor('redis')">
+          <div class="actor-icon">🟥</div>
+          <div class="actor-name">Redis (In-Memory)</div>
+          <span class="actor-role">Cache Layer</span>
+          <p class="actor-desc">Ultra-fast key-value store. Evaluates key existence; on miss, accepts populated data with TTL.</p>
+          <div class="actor-tech">RESP3 / In-Memory RAM</div>
+        </div>
+
+        <!-- 4. PostgreSQL -->
+        <div class="actor-node" id="node-postgres" onclick="inspectActor('postgres')">
+          <div class="actor-icon">🐘</div>
+          <div class="actor-name">PostgreSQL Database</div>
+          <span class="actor-role">System of Record</span>
+          <p class="actor-desc">ACID-compliant relational database. Queried on cache miss to retrieve authoritative data.</p>
+          <div class="actor-tech">SQL / Connection Pool (pgBouncer)</div>
+        </div>
+      </div>
+
+      <!-- Stepper Controls -->
+      <div class="stepper-controls">
+        <button class="btn btn-primary" id="prevBtn" onclick="prevStep()">Previous Step</button>
+        <button class="btn btn-primary" id="nextBtn" onclick="nextStep()">Next Step</button>
+        <button class="btn" id="playBtn" onclick="togglePlay()">▶ Play Animation</button>
+        <button class="btn" onclick="resetSteps()">↺ Reset Flow</button>
+        <div class="step-indicator" id="stepIndicator">Step 1 of 6: Browser Calls API</div>
+      </div>
+
+      <!-- Interactive Stepper with Inspector -->
+      <div class="stepper-layout">
+        <!-- Steps List -->
+        <div class="step-list" id="stepContainer">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Inspector Drawer -->
+        <div class="inspector" id="actorInspector">
+          <div class="inspector-title">
+            <span id="inspectTitle">Component Inspector</span>
+            <span class="badge badge-hit" id="inspectBadge">Node Info</span>
+          </div>
+          <p id="inspectDesc" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.45;">
+            Select a step or component to inspect network packets, latency expectations, and error fallback modes.
+          </p>
+          <div id="inspectProps">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Technical Analysis & Best Practices -->
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>Cache-Aside Pattern Technical Specifications &amp; Edge Cases</span>
+        </div>
+      </div>
+
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Pattern Challenge</th>
+            <th>Impact</th>
+            <th>Recommended Production Solution</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Cache Stampede (Thundering Herd)</strong></td>
+            <td>High load spikes PostgreSQL when a popular key expires and hundreds of concurrent requests miss Redis simultaneously.</td>
+            <td>Use <strong>Mutex / Distributed Locks</strong> (e.g. <code>Redlock</code>) or probabilistic early expiration (XFetch algorithm) so only one thread rebuilds the cache.</td>
+          </tr>
+          <tr>
+            <td><strong>Cache Invalidation &amp; Drift</strong></td>
+            <td>Stale data is served if updates in PostgreSQL are not purged or synchronized with Redis.</td>
+            <td>Enforce <strong>Write-Through</strong> or <strong>Cache-Eviction on Update</strong>: When mutating data (POST/PATCH/DELETE), purge the cache key (<code>DEL task:101</code>).</td>
+          </tr>
+          <tr>
+            <td><strong>Redis Outage / Unavailability</strong></td>
+            <td>API crashes if Redis connection failures are unhandled.</td>
+            <td>Implement <strong>Fail-Open Graceful Degradation</strong>: Wrap Redis calls in a try/catch. On Redis failure, log warning, fallback to PostgreSQL directly, and return 200 OK.</td>
+          </tr>
+          <tr>
+            <td><strong>Cache Penetration</strong></td>
+            <td>Attackers request non-existent IDs repeatedly, constantly bypassing Redis and querying PostgreSQL.</td>
+            <td>Cache null/empty results with short TTL (e.g. <code>SET task:99999 "null" EX 30</code>) or configure a <strong>Bloom Filter</strong> in front of Redis.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>Generated by Archify Engine &bull; Web Request Architecture &amp; Caching Lifecycle &bull; Standalone HTML</p>
+  </footer>
+
+  <script>
+    // Theme Toggle
+    const themeBtn = document.getElementById('themeBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    let isDark = true;
+
+    themeBtn.addEventListener('click', () => {
+      isDark = !isDark;
+      if (isDark) {
+        document.body.removeAttribute('data-theme');
+        themeIcon.textContent = '☀️ Light';
+      } else {
+        document.body.setAttribute('data-theme', 'light');
+        themeIcon.textContent = '🌙 Dark';
+      }
+    });
+
+    // Workflow Steps
+    const steps = [
+      {
+        num: 1,
+        activeNodes: ['node-browser', 'node-api'],
+        route: "Browser ➔ API Gateway",
+        title: "1. HTTP Request Dispatched",
+        desc: "The client browser initiates an HTTP GET request over TLS to fetch task #101.",
+        code: "GET /api/v1/tasks/101 HTTP/1.1\nHost: api.example.com\nAccept: application/json",
+        inspector: {
+          title: "Step 1: Inbound Web Request",
+          badge: "HTTP / REST",
+          desc: "Browser client initiates request. The API Gateway receives and parses HTTP headers, routing the request to the task controller.",
+          props: [
+            { label: "Protocol", val: "HTTPS / HTTP 2.0" },
+            { label: "Payload", val: "None (GET Request)" },
+            { label: "Expected Latency", val: "10ms - 50ms (Network RTT)" }
+          ]
+        }
+      },
+      {
+        num: 2,
+        activeNodes: ['node-api', 'node-redis'],
+        route: "API Gateway ➔ Redis",
+        title: "2. Check In-Memory Cache (Cache Lookup)",
+        desc: "API issues a fast key-value lookup to Redis using the deterministic key pattern `task:101`.",
+        code: "REDIS CLIENT: GET task:101",
+        inspector: {
+          title: "Step 2: Redis Key Inspection",
+          badge: "Cache Check",
+          desc: "API performs an O(1) in-memory key check over persistent TCP connection pool using RESP protocol.",
+          props: [
+            { label: "Command", val: "GET task:101" },
+            { label: "Redis Memory Latency", val: "< 1ms (Sub-millisecond)" },
+            { label: "Connection", val: "Persistent TCP Pool (e.g. ioredis)" }
+          ]
+        }
+      },
+      {
+        num: 3,
+        activeNodes: ['node-redis', 'node-api'],
+        route: "Redis ➔ API Gateway",
+        title: "3. Cache Miss (Key Not Found / Expired)",
+        desc: "Redis reports that key `task:101` does not exist (or its TTL expired). It returns a null response.",
+        code: "REDIS RESPONSE: (nil)\nStatus: CACHE_MISS -> Trigger fallback logic",
+        inspector: {
+          title: "Step 3: Cache Miss Event",
+          badge: "Cache Miss",
+          desc: "Key not present in cache memory. The API controller branches into the database query fallback routine.",
+          props: [
+            { label: "Returned Value", val: "nil (null)" },
+            { label: "Header Action", val: "Set X-Cache: MISS" },
+            { label: "Fallback Action", val: "Trigger PostgreSQL Read" }
+          ]
+        }
+      },
+      {
+        num: 4,
+        activeNodes: ['node-api', 'node-postgres'],
+        route: "API Gateway ➔ PostgreSQL",
+        title: "4. Query Primary Database (System of Record)",
+        desc: "API queries PostgreSQL using an indexed parameterized query to fetch the authoritative row.",
+        code: "SELECT id, title, completed, created_at, updated_at \nFROM tasks \nWHERE id = '101' LIMIT 1;",
+        inspector: {
+          title: "Step 4: PostgreSQL Query Execution",
+          badge: "SQL Execution",
+          desc: "PostgreSQL searches primary index B-Tree for row ID 101 and returns the authoritative record.",
+          props: [
+            { label: "Query Execution", val: "Index Scan using tasks_pkey" },
+            { label: "Expected Latency", val: "2ms - 8ms" },
+            { label: "Isolation Level", val: "Read Committed" }
+          ]
+        }
+      },
+      {
+        num: 5,
+        activeNodes: ['node-postgres', 'node-api', 'node-redis'],
+        route: "API Gateway ➔ Redis",
+        title: "5. Fill Cache with TTL (Lazy Population)",
+        desc: "API serializes the PostgreSQL row to JSON and writes it into Redis with an expiration TTL (e.g. 1 hour).",
+        code: "SET task:101 '{\"id\":101,\"title\":\"Buy milk\",\"completed\":false}' EX 3600\nREDIS RESPONSE: OK",
+        inspector: {
+          title: "Step 5: Cache Filling (Set with Expiry)",
+          badge: "Cache Invalidation / Fill",
+          desc: "The retrieved data is placed in Redis cache with an explicit Time-To-Live (TTL) so subsequent requests result in a Cache Hit.",
+          props: [
+            { label: "Command", val: "SET key value EX 3600" },
+            { label: "TTL", val: "3600 seconds (1 hour)" },
+            { label: "Subsequent Requests", val: "Cache Hit (0.5ms)" }
+          ]
+        }
+      },
+      {
+        num: 6,
+        activeNodes: ['node-api', 'node-browser'],
+        route: "API Gateway ➔ Browser",
+        title: "6. HTTP Response Sent to Browser",
+        desc: "API transmits the JSON payload back to the browser client with HTTP 200 OK and cache tracking headers.",
+        code: "HTTP/1.1 200 OK\nContent-Type: application/json\nX-Cache: MISS\n\n{\"id\":\"101\",\"title\":\"Buy milk\",\"completed\":false}",
+        inspector: {
+          title: "Step 6: Final Client Response",
+          badge: "HTTP 200 OK",
+          desc: "Web client receives the requested task data. Next request for task #101 will hit Redis directly without touching PostgreSQL.",
+          props: [
+            { label: "Status Code", val: "200 OK" },
+            { label: "Custom Header", val: "X-Cache: MISS" },
+            { label: "Total Request Time", val: "~15ms - 60ms" }
+          ]
+        }
+      }
+    ];
+
+    let currentStep = 0;
+    let playInterval = null;
+
+    // Render Steps
+    function renderSteps() {
+      const container = document.getElementById('stepContainer');
+      container.innerHTML = '';
+
+      steps.forEach((s, idx) => {
+        const card = document.createElement('div');
+        card.className = `step-card ${idx === currentStep ? 'active-step' : ''}`;
+        card.onclick = () => selectStep(idx);
+        card.innerHTML = `
+          <div class="step-bullet">${s.num}</div>
+          <div class="step-card-header">
+            <span class="step-card-title">${s.title}</span>
+            <span class="step-route-tag">${s.route}</span>
+          </div>
+          <p class="step-card-desc">${s.desc}</p>
+          <pre class="code-box"><code>${s.code}</code></pre>
+        `;
+        container.appendChild(card);
+      });
+
+      // Update Node Highlights
+      document.querySelectorAll('.actor-node').forEach(node => {
+        node.classList.remove('highlight-step');
+      });
+
+      const activeNodes = steps[currentStep].activeNodes;
+      activeNodes.forEach(nodeId => {
+        const el = document.getElementById(nodeId);
+        if (el) el.classList.add('highlight-step');
+      });
+
+      // Update Inspector
+      const s = steps[currentStep];
+      document.getElementById('inspectTitle').textContent = s.inspector.title;
+      document.getElementById('inspectBadge').textContent = s.inspector.badge;
+      document.getElementById('inspectDesc').textContent = s.inspector.desc;
+
+      const propContainer = document.getElementById('inspectProps');
+      propContainer.innerHTML = '';
+      s.inspector.props.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'prop-item';
+        div.innerHTML = `
+          <span class="prop-label">${p.label}</span>
+          <span class="prop-val">${p.val}</span>
+        `;
+        propContainer.appendChild(div);
+      });
+
+      document.getElementById('stepIndicator').textContent = `Step ${currentStep + 1} of ${steps.length}: ${s.title}`;
+    }
+
+    function selectStep(idx) {
+      currentStep = idx;
+      renderSteps();
+    }
+
+    function nextStep() {
+      if (currentStep < steps.length - 1) {
+        currentStep++;
+      } else {
+        currentStep = 0;
+      }
+      renderSteps();
+    }
+
+    function prevStep() {
+      if (currentStep > 0) {
+        currentStep--;
+      } else {
+        currentStep = steps.length - 1;
+      }
+      renderSteps();
+    }
+
+    function resetSteps() {
+      if (playInterval) togglePlay();
+      currentStep = 0;
+      renderSteps();
+    }
+
+    function togglePlay() {
+      const playBtn = document.getElementById('playBtn');
+      if (playInterval) {
+        clearInterval(playInterval);
+        playInterval = null;
+        playBtn.textContent = '▶ Play Animation';
+      } else {
+        playBtn.textContent = '⏸ Pause';
+        playInterval = setInterval(() => {
+          nextStep();
+        }, 2200);
+      }
+    }
+
+    function inspectActor(actor) {
+      const actorData = {
+        browser: {
+          title: "Browser Client (HTTP Requester)",
+          badge: "Client Tier",
+          desc: "Initiates HTTP GET request with authentication headers or cookies, handles connection pooling, and renders incoming JSON data.",
+          props: [
+            { label: "Request Target", val: "GET /api/v1/tasks/101" },
+            { label: "Keep-Alive", val: "Connection: keep-alive" },
+            { label: "Caching Header", val: "Cache-Control: no-cache" }
+          ]
+        },
+        api: {
+          title: "API Gateway / Server Application",
+          badge: "Application Tier",
+          desc: "Central controller implementing Cache-Aside logic. Evaluates Redis first; upon miss, reads PostgreSQL, populates Redis, and replies.",
+          props: [
+            { label: "Language & Framework", val: "Node.js Express / Python FastAPI / Go" },
+            { label: "Cache Policy", val: "Cache-Aside (Lazy Population)" },
+            { label: "Resilience", val: "Circuit Breaker on Redis failure" }
+          ]
+        },
+        redis: {
+          title: "Redis In-Memory Cache Store",
+          badge: "Cache Tier",
+          desc: "Key-value store running in RAM. Uses LRU eviction policy when memory threshold is reached. Keys configured with TTL.",
+          props: [
+            { label: "Key Format", val: "task:{id} (e.g. task:101)" },
+            { label: "Command Complexity", val: "GET: O(1), SET: O(1)" },
+            { label: "Eviction Policy", val: "allkeys-lru (Least Recently Used)" }
+          ]
+        },
+        postgres: {
+          title: "PostgreSQL Database (System of Record)",
+          badge: "Database Tier",
+          desc: "Relational database maintaining persistent tables, foreign keys, and ACID transaction logs (WAL).",
+          props: [
+            { label: "Query Strategy", val: "Indexed lookup on Primary Key (B-Tree)" },
+            { label: "Connection Pooler", val: "pgBouncer (Max 50-100 pool connections)" },
+            { label: "Storage Engine", val: "PostgreSQL Tablespace on NVMe SSD" }
+          ]
+        }
+      };
+
+      const data = actorData[actor];
+      if (!data) return;
+
+      document.querySelectorAll('.actor-node').forEach(n => n.classList.remove('active'));
+      const nodeEl = document.getElementById(`node-${actor}`);
+      if (nodeEl) nodeEl.classList.add('active');
+
+      document.getElementById('inspectTitle').textContent = data.title;
+      document.getElementById('inspectBadge').textContent = data.badge;
+      document.getElementById('inspectDesc').textContent = data.desc;
+
+      const propContainer = document.getElementById('inspectProps');
+      propContainer.innerHTML = '';
+      data.props.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'prop-item';
+        div.innerHTML = `
+          <span class="prop-label">${p.label}</span>
+          <span class="prop-val">${p.val}</span>
+        `;
+        propContainer.appendChild(div);
+      });
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderSteps();
+    });
+  </script>
+</body>
+</html>

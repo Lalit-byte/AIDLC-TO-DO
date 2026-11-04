@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do List Application — Software Architecture & Workflows</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --bg-card: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --border-color: #334155;
+      --border-focus: #38bdf8;
+      --accent-blue: #38bdf8;
+      --accent-indigo: #818cf8;
+      --accent-emerald: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-rose: #f43f5e;
+      --accent-purple: #c084fc;
+      --node-frontend: #0284c7;
+      --node-hook: #6366f1;
+      --node-service: #8b5cf6;
+      --node-backend: #059669;
+      --node-database: #d97706;
+      --node-storage: #ec4899;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #f1f5f9;
+      --bg-card: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+      --border-color: #e2e8f0;
+      --border-focus: #0284c7;
+      --accent-blue: #0284c7;
+      --accent-indigo: #4f46e5;
+      --accent-emerald: #059669;
+      --accent-amber: #d97706;
+      --accent-rose: #e11d48;
+      --accent-purple: #9333ea;
+      --node-frontend: #0284c7;
+      --node-hook: #4f46e5;
+      --node-service: #7c3aed;
+      --node-backend: #047857;
+      --node-database: #b45309;
+      --node-storage: #db2777;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-indigo));
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      background: var(--bg-tertiary);
+      padding: 0.25rem;
+      border-radius: 8px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      background: var(--bg-secondary);
+      color: var(--accent-blue);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .theme-toggle, .btn-action {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.45rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.825rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: background 0.15s;
+    }
+
+    .theme-toggle:hover, .btn-action:hover {
+      background: var(--border-color);
+    }
+
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 2rem;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid & Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-implemented {
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+
+    .badge-planned {
+      background: rgba(251, 191, 36, 0.15);
+      color: var(--accent-amber);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .badge-frontend {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .badge-backend {
+      background: rgba(129, 140, 248, 0.15);
+      color: var(--accent-indigo);
+      border: 1px solid rgba(129, 140, 248, 0.3);
+    }
+
+    /* Architecture Layers Canvas */
+    .arch-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      position: relative;
+    }
+
+    .arch-layer {
+      background: var(--bg-secondary);
+      border: 1px dashed var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem;
+      position: relative;
+    }
+
+    .layer-label {
+      position: absolute;
+      top: -0.75rem;
+      left: 1rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      padding: 0.15rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .node {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .node:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.15);
+      border-color: var(--accent-blue);
+    }
+
+    .node.active {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 2px var(--accent-blue);
+    }
+
+    .node-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .node-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .node-type {
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      background: var(--bg-tertiary);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+    }
+
+    .node-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .node-file {
+      font-size: 0.725rem;
+      font-family: var(--font-mono);
+      color: var(--accent-indigo);
+      margin-top: 0.25rem;
+      word-break: break-all;
+    }
+
+    /* Flow connector arrows */
+    .flow-connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 0;
+      color: var(--accent-blue);
+      font-size: 0.85rem;
+      font-weight: 600;
+      gap: 0.5rem;
+    }
+
+    .flow-connector svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    /* Split layout with inspector */
+    .split-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .split-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Inspector Drawer */
+    .inspector {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      height: fit-content;
+      position: sticky;
+      top: 5.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .inspector-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .prop-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.85rem;
+    }
+
+    .prop-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .prop-label {
+      font-size: 0.725rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+    }
+
+    .prop-val {
+      font-family: var(--font-mono);
+      background: var(--bg-tertiary);
+      padding: 0.35rem 0.5rem;
+      border-radius: 4px;
+      color: var(--text-main);
+      font-size: 0.8rem;
+    }
+
+    /* Workflow Diagram Interactive View */
+    .workflow-selector {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .wf-btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 0.5rem 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .wf-btn:hover {
+      color: var(--text-main);
+      background: var(--border-color);
+    }
+
+    .wf-btn.active {
+      background: var(--accent-blue);
+      color: #fff;
+      border-color: var(--accent-blue);
+    }
+
+    .step-track {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: relative;
+      padding-left: 2rem;
+    }
+
+    .step-track::before {
+      content: '';
+      position: absolute;
+      left: 0.65rem;
+      top: 0.5rem;
+      bottom: 0.5rem;
+      width: 2px;
+      background: var(--border-color);
+    }
+
+    .step-item {
+      position: relative;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      transition: border-color 0.2s;
+    }
+
+    .step-item:hover {
+      border-color: var(--accent-blue);
+    }
+
+    .step-num {
+      position: absolute;
+      left: -2rem;
+      top: 1rem;
+      width: 1.35rem;
+      height: 1.35rem;
+      border-radius: 50%;
+      background: var(--bg-primary);
+      border: 2px solid var(--accent-blue);
+      color: var(--accent-blue);
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .step-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .step-actor {
+      font-size: 0.725rem;
+      font-family: var(--font-mono);
+      background: var(--bg-tertiary);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      color: var(--accent-indigo);
+    }
+
+    .step-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .step-code {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.775rem;
+      color: var(--accent-emerald);
+      overflow-x: auto;
+      margin-top: 0.25rem;
+    }
+
+    /* Comparison Table */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      text-align: left;
+    }
+
+    .comp-table th, .comp-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .comp-table th {
+      background: var(--bg-tertiary);
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .comp-table tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Code block */
+    pre code {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      background: var(--bg-secondary);
+    }
+
+    .key-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand">
+      <span class="brand-badge">Archify Diagram</span>
+      <div>
+        <h1>To-Do List Full-Stack Architecture</h1>
+        <p>Interactive System Model, Component Hierarchy &amp; Workflow Traces</p>
+      </div>
+    </div>
+
+    <nav class="nav-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="system" role="tab">System Architecture</button>
+      <button class="tab-btn" data-tab="components" role="tab">Component Hierarchy</button>
+      <button class="tab-btn" data-tab="workflows" role="tab">Interactive Workflows</button>
+      <button class="tab-btn" data-tab="dataflow" role="tab">Data Flow &amp; Persistence</button>
+      <button class="tab-btn" data-tab="matrix" role="tab">Features &amp; API Matrix</button>
+    </nav>
+
+    <div class="header-actions">
+      <a href="cache-miss-flow.html" class="theme-toggle" style="text-decoration: none; color: inherit; background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4);" title="View Redis Cache Miss Diagram">
+        ⚡ Cache-Aside Flow
+      </a>
+      <button class="theme-toggle" id="themeBtn" title="Toggle Light/Dark Theme">
+        <span id="themeIcon">☀️ Light</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Areas -->
+  <main>
+
+    <!-- TAB 1: SYSTEM ARCHITECTURE -->
+    <section id="tab-system" class="tab-content active">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>High-Level Full-Stack System Topology</span>
+            <span class="badge badge-implemented">Verified From Code</span>
+          </div>
+          <div style="font-size: 0.825rem; color: var(--text-muted);">
+            Click any node below to inspect details in the right-hand panel
+          </div>
+        </div>
+
+        <div class="split-layout">
+          <!-- Architecture Layers -->
+          <div class="arch-container">
+
+            <!-- LAYER 1: USER / CLIENT BROWSER -->
+            <div class="arch-layer">
+              <span class="layer-label">1. Client Tier (Browser Runtime)</span>
+              <div class="nodes-grid">
+                <div class="node" onclick="inspectNode('user')">
+                  <div class="node-header">
+                    <span class="node-name">👤 End User</span>
+                    <span class="node-type">Actor</span>
+                  </div>
+                  <p class="node-desc">Interacts via mouse/keyboard: adds, edits, deletes, toggles, and filters tasks.</p>
+                  <div class="node-file">Accessible DOM &amp; ARIA live regions</div>
+                </div>
+
+                <div class="node" onclick="inspectNode('react-dom')">
+                  <div class="node-header">
+                    <span class="node-name">⚛️ React 19 Root</span>
+                    <span class="node-type">Vite SPA</span>
+                  </div>
+                  <p class="node-desc">Single-page application client mounted inside <code>#root</code> DOM node.</p>
+                  <div class="node-file">frontend/src/main.jsx</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flow-connector">
+              <svg viewBox="0 0 24 24"><path d="M12 4v16m0 0l-4-4m4 4l4-4"/></svg>
+              <span>User Events &amp; Component Renders</span>
+            </div>
+
+            <!-- LAYER 2: FRONTEND PRESENTATION & STATE -->
+            <div class="arch-layer">
+              <span class="layer-label">2. Frontend Core (React Components &amp; Hooks)</span>
+              <div class="nodes-grid">
+                <div class="node" onclick="inspectNode('app')">
+                  <div class="node-header">
+                    <span class="node-name">📦 App Frame</span>
+                    <span class="node-type">Component</span>
+                  </div>
+                  <p class="node-desc">Master container component. Manages pending delete modals, inline edit IDs, and keyboard focus requests.</p>
+                  <div class="node-file">frontend/src/App.jsx</div>
+                </div>
+
+                <div class="node" onclick="inspectNode('useTasks')">
+                  <div class="node-header">
+                    <span class="node-name">⚡ useTasks Hook</span>
+                    <span class="node-type">State Engine</span>
+                  </div>
+                  <p class="node-desc">Central application state owner. Holds task list in memory, drives optimistic updates, and schedules background saves.</p>
+                  <div class="node-file">frontend/src/hooks/useTasks.js</div>
+                </div>
+
+                <div class="node" onclick="inspectNode('titleRules')">
+                  <div class="node-header">
+                    <span class="node-name">📏 titleRules</span>
+                    <span class="node-type">Validator</span>
+                  </div>
+                  <p class="node-desc">Pure validation logic for task titles (1–200 trimmed characters, no empty strings).</p>
+                  <div class="node-file">frontend/src/services/titleRules.js</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flow-connector">
+              <svg viewBox="0 0 24 24"><path d="M12 4v16m0 0l-4-4m4 4l4-4"/></svg>
+              <span>Service Calls &amp; Background Sync</span>
+            </div>
+
+            <!-- LAYER 3: CLIENT STORAGE SERVICE & DUAL PERSISTENCE -->
+            <div class="arch-layer">
+              <span class="layer-label">3. Client Storage Service (Dual Target)</span>
+              <div class="nodes-grid">
+                <div class="node" onclick="inspectNode('taskStorage')">
+                  <div class="node-header">
+                    <span class="node-name">🛡️ taskStorage Service</span>
+                    <span class="node-type">Data Gateway</span>
+                  </div>
+                  <p class="node-desc">Single abstraction layer for storage. Handles LocalStorage JSON serialization, multi-tab sync, damaged data recovery, and REST API calls.</p>
+                  <div class="node-file">frontend/src/services/taskStorage.js</div>
+                </div>
+
+                <div class="node" onclick="inspectNode('localStorage')">
+                  <div class="node-header">
+                    <span class="node-name">💾 LocalStorage</span>
+                    <span class="node-type">Local Cache</span>
+                  </div>
+                  <p class="node-desc">Browser storage key <code>todo-app.tasks</code> with backup namespace <code>todo-app.tasks.damaged.*</code>.</p>
+                  <div class="node-file">window.localStorage</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flow-connector">
+              <svg viewBox="0 0 24 24"><path d="M12 4v16m0 0l-4-4m4 4l4-4"/></svg>
+              <span>HTTP REST Calls (Vite Proxy: /api &rarr; :3001)</span>
+            </div>
+
+            <!-- LAYER 4: BACKEND REST API -->
+            <div class="arch-layer">
+              <span class="layer-label">4. Backend API Tier (Node.js &amp; Express)</span>
+              <div class="nodes-grid">
+                <div class="node" onclick="inspectNode('express')">
+                  <div class="node-header">
+                    <span class="node-name">🚀 Express API Server</span>
+                    <span class="node-type">HTTP Service</span>
+                  </div>
+                  <p class="node-desc">Express server with CORS, JSON body parser, 404 handler, and centralized error middleware.</p>
+                  <div class="node-file">backend/src/app.js &amp; server.js</div>
+                </div>
+
+                <div class="node" onclick="inspectNode('taskRoutes')">
+                  <div class="node-header">
+                    <span class="node-name">🛣️ taskRoutes</span>
+                    <span class="node-type">REST Router</span>
+                  </div>
+                  <p class="node-desc">Handles <code>/api/tasks</code> routes: GET, POST, PATCH, and DELETE endpoints with payload validation.</p>
+                  <div class="node-file">backend/src/routes/taskRoutes.js</div>
+                </div>
+
+                <div class="node" onclick="inspectNode('taskService')">
+                  <div class="node-header">
+                    <span class="node-name">⚙️ taskService</span>
+                    <span class="node-type">Data Access</span>
+                  </div>
+                  <p class="node-desc">CRUD query executor with UUID generation and database type translation (SQLite 0/1 &harr; JS boolean).</p>
+                  <div class="node-file">backend/src/services/taskService.js</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flow-connector">
+              <svg viewBox="0 0 24 24"><path d="M12 4v16m0 0l-4-4m4 4l4-4"/></svg>
+              <span>Prepared SQL Statements</span>
+            </div>
+
+            <!-- LAYER 5: DATABASE & PERSISTENCE -->
+            <div class="arch-layer">
+              <span class="layer-label">5. Persistence Tier (SQLite Database)</span>
+              <div class="nodes-grid">
+                <div class="node" onclick="inspectNode('database')">
+                  <div class="node-header">
+                    <span class="node-name">🗄️ SQLite (WAL Mode)</span>
+                    <span class="node-type">better-sqlite3</span>
+                  </div>
+                  <p class="node-desc">Embedded database with Write-Ahead Logging (WAL) for high concurrency. Indexed by <code>createdAt DESC</code>.</p>
+                  <div class="node-file">backend/data/todo.db</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Inspector Side Panel -->
+          <div class="inspector" id="nodeInspector">
+            <div class="inspector-title">
+              <span id="inspectTitle">Component Inspector</span>
+              <span class="badge badge-implemented" id="inspectBadge">Node Info</span>
+            </div>
+            <p id="inspectDesc" style="font-size: 0.85rem; color: var(--text-muted);">
+              Select any block in the architecture diagram to inspect its exact responsibilities, file path, contracts, and interfaces.
+            </p>
+            <div class="prop-list" id="inspectProps">
+              <div class="prop-item">
+                <span class="prop-label">Status</span>
+                <span class="prop-val">Ready for inspection</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: COMPONENT HIERARCHY -->
+    <section id="tab-components" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>React Component Tree &amp; State Distribution</span>
+            <span class="badge badge-frontend">Presentation Layer</span>
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Strict Functional Architecture + Prop Delegation</span>
+        </div>
+
+        <div class="split-layout">
+          <div>
+            <div class="arch-layer" style="margin-bottom: 1.5rem;">
+              <span class="layer-label">Tree Topology</span>
+              <div style="font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.8; color: var(--text-main); background: var(--bg-primary); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div>📁 <strong style="color: var(--accent-blue);">App</strong> (Root Page Container &amp; Focus Manager)</div>
+                <div style="padding-left: 1.5rem;">├── 📄 <span style="color: var(--text-muted);">h1.card__title ("Todo List")</span></div>
+                <div style="padding-left: 1.5rem;">├── 📄 <span style="color: var(--text-muted);">p.storage-note ("Your tasks are saved in this browser only.")</span></div>
+                <div style="padding-left: 1.5rem;">├── 🔔 <strong style="color: var(--accent-rose);" onclick="inspectNode('MessageBar')">MessageBar</strong> <span style="color: var(--text-dim);">{ notice }</span></div>
+                <div style="padding-left: 1.5rem;">├── 📝 <strong style="color: var(--accent-emerald);" onclick="inspectNode('TaskForm')">TaskForm</strong> <span style="color: var(--text-dim);">{ onAdd }</span></div>
+                <div style="padding-left: 1.5rem;">├── 📋 <strong style="color: var(--accent-blue);" onclick="inspectNode('TaskList')">TaskList</strong> <span style="color: var(--text-dim);">{ tasks, hasTasks, editingId, onToggle, onAskDelete, ... }</span></div>
+                <div style="padding-left: 3rem;">│   ├── 💡 <span style="color: var(--text-muted);">p.empty-hint ("No tasks yet. Add one above." OR "No tasks match this filter.")</span></div>
+                <div style="padding-left: 3rem;">│   └── 📑 <strong style="color: var(--accent-indigo);" onclick="inspectNode('TaskItem')">TaskItem</strong> (Map over visibleTasks keyed by task.id)</div>
+                <div style="padding-left: 4.5rem;">│       ├── 🔲 <span style="color: var(--text-muted);">input[type=checkbox] (aria-labelledby=titleId)</span></div>
+                <div style="padding-left: 4.5rem;">│       ├── 🏷️ <span style="color: var(--text-muted);">span.task-item__title (Display mode)</span></div>
+                <div style="padding-left: 4.5rem;">│       ├── ✏️ <span style="color: var(--text-muted);">button.task-item__edit (Enters edit mode)</span></div>
+                <div style="padding-left: 4.5rem;">│       ├── 🗑️ <span style="color: var(--text-muted);">button.task-item__delete (Triggers confirmation modal)</span></div>
+                <div style="padding-left: 4.5rem;">│       └── ✏️ <strong style="color: var(--accent-amber);" onclick="inspectNode('TaskEditField')">TaskEditField</strong> <span style="color: var(--text-dim);">(Active row only: inline form, Enter/Esc)</span></div>
+                <div style="padding-left: 1.5rem;">├── 📊 <strong style="color: var(--accent-purple);">div.summary</strong></div>
+                <div style="padding-left: 3rem;">│   ├── 🔢 <strong style="color: var(--accent-purple);" onclick="inspectNode('Counter')">Counter</strong> <span style="color: var(--text-dim);">{ remaining } (role="status" aria-live="polite")</span></div>
+                <div style="padding-left: 3rem;">│   └── 🔘 <strong style="color: var(--accent-purple);" onclick="inspectNode('FilterBar')">FilterBar</strong> <span style="color: var(--text-dim);">{ filter, onChange } (All | Active | Completed)</span></div>
+                <div style="padding-left: 1.5rem;">└── 🛑 <strong style="color: var(--accent-rose);" onclick="inspectNode('DeleteDialog')">DeleteDialog</strong> <span style="color: var(--text-dim);">{ task, onConfirm, onCancel } (&lt;dialog&gt; native modal)</span></div>
+              </div>
+            </div>
+
+            <div class="nodes-grid">
+              <div class="node" onclick="inspectNode('TaskForm')">
+                <div class="node-header">
+                  <span class="node-name">TaskForm</span>
+                  <span class="node-type">Input Form</span>
+                </div>
+                <p class="node-desc">Autofocuses on mount. Validates title (1–200 characters) before submission. Clears input on success.</p>
+                <div class="node-file">src/components/TaskForm.jsx</div>
+              </div>
+
+              <div class="node" onclick="inspectNode('TaskItem')">
+                <div class="node-header">
+                  <span class="node-name">TaskItem</span>
+                  <span class="node-type">Item Row</span>
+                </div>
+                <p class="node-desc">Accessible row with strikethrough styling for completed tasks. Mounts TaskEditField when active.</p>
+                <div class="node-file">src/components/TaskItem.jsx</div>
+              </div>
+
+              <div class="node" onclick="inspectNode('TaskEditField')">
+                <div class="node-header">
+                  <span class="node-name">TaskEditField</span>
+                  <span class="node-type">Inline Editor</span>
+                </div>
+                <p class="node-desc">Replaces row text during editing. Selects text on open. Pressing Enter saves; pressing Escape cancels.</p>
+                <div class="node-file">src/components/TaskEditField.jsx</div>
+              </div>
+
+              <div class="node" onclick="inspectNode('DeleteDialog')">
+                <div class="node-header">
+                  <span class="node-name">DeleteDialog</span>
+                  <span class="node-type">Native Modal</span>
+                </div>
+                <p class="node-desc">Built with HTML5 <code>&lt;dialog&gt;</code> element. Focus defaults safely to "Cancel". Backdrop click is ignored.</p>
+                <div class="node-file">src/components/DeleteDialog.jsx</div>
+              </div>
+
+              <div class="node" onclick="inspectNode('FilterBar')">
+                <div class="node-header">
+                  <span class="node-name">FilterBar</span>
+                  <span class="node-type">Navigation</span>
+                </div>
+                <p class="node-desc">Stateless toggle buttons (All, Active, Completed) using <code>aria-pressed</code> for screen readers.</p>
+                <div class="node-file">src/components/FilterBar.jsx</div>
+              </div>
+
+              <div class="node" onclick="inspectNode('Counter')">
+                <div class="node-header">
+                  <span class="node-name">Counter</span>
+                  <span class="node-type">Status Region</span>
+                </div>
+                <p class="node-desc">Reports uncompleted tasks ("N items left") via <code>role="status"</code> and <code>aria-live="polite"</code>.</p>
+                <div class="node-file">src/components/Counter.jsx</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Component Rules & Principles -->
+          <div class="inspector">
+            <div class="inspector-title">
+              <span>Architecture Rules</span>
+              <span class="badge badge-implemented">ADR Compliant</span>
+            </div>
+            <ul style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.75rem; padding-left: 1.25rem;">
+              <li><strong>Presentation Only:</strong> Subcomponents contain no direct storage access, fetch calls, or global store dependencies.</li>
+              <li><strong>Single Source of Hook:</strong> <code>App.jsx</code> is the sole component reading <code>useTasks()</code>, passing down props and callbacks.</li>
+              <li><strong>Focus Management:</strong> Managed centrally in <code>App.jsx</code> via <code>focusRequestRef</code> after deletion, edits, or filter changes.</li>
+              <li><strong>Strict Accessibility:</strong> Contrast >= 4.5:1, explicit labels, ARIA attributes (<code>aria-labelledby</code>, <code>aria-live</code>, <code>role="alert"</code>).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: WORKFLOWS -->
+    <section id="tab-workflows" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Interactive Workflow Execution Traces</span>
+            <span class="badge badge-implemented">Step-by-Step</span>
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Select a workflow scenario to view data flow from UI to Database</span>
+        </div>
+
+        <div class="workflow-selector">
+          <button class="wf-btn active" onclick="switchWorkflow('add')">1. Add New Task</button>
+          <button class="wf-btn" onclick="switchWorkflow('edit')">2. Edit Task Title</button>
+          <button class="wf-btn" onclick="switchWorkflow('delete')">3. Delete Task (Modal)</button>
+          <button class="wf-btn" onclick="switchWorkflow('complete')">4. Toggle Task Completion</button>
+          <button class="wf-btn" onclick="switchWorkflow('filter')">5. Filter Tasks</button>
+          <button class="wf-btn" onclick="switchWorkflow('sync')">6. Storage &amp; Backend Sync</button>
+        </div>
+
+        <div id="wfTrackContainer" class="step-track">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: DATA FLOW & PERSISTENCE -->
+    <section id="tab-dataflow" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Dual-Persistence Strategy &amp; Data Contract</span>
+            <span class="badge badge-implemented">Local-First + REST</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+          <!-- Contract -->
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--accent-blue);">Shared Task Contract</h3>
+            <pre class="step-code"><code>type Task = {
+  id: string;        // crypto.randomUUID()
+  title: string;     // 1-200 chars, trimmed
+  completed: boolean;// true | false
+  createdAt: string; // ISO 8601 (UTC)
+  updatedAt: string; // ISO 8601 (UTC)
+};</code></pre>
+            <p style="font-size: 0.825rem; color: var(--text-muted); margin-top: 0.75rem;">
+              Both the frontend state, LocalStorage serialization, Express JSON responses, and SQLite columns strictly mirror this contract.
+            </p>
+          </div>
+
+          <!-- Dual Persistence Strategy -->
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--accent-emerald);">Optimistic Rendering Loop</h3>
+            <ol style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.5rem; padding-left: 1.25rem;">
+              <li><strong>Instant UI Update:</strong> State is mutated in memory first; component re-renders immediately.</li>
+              <li><strong>Post-Paint Save:</strong> <code>useTasks</code> uses <code>requestAnimationFrame</code> + <code>setTimeout(0)</code> to persist to LocalStorage without blocking rendering.</li>
+              <li><strong>Async REST Call:</strong> <code>TaskStorage</code> asynchronously calls Express (POST/PATCH/DELETE) and updates local state upon server confirmation.</li>
+              <li><strong>Multi-Tab Sync:</strong> <code>window.addEventListener('storage')</code> synchronizes edits across different browser tabs without race conditions.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="card" style="background: var(--bg-primary);">
+          <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem;">Fault Tolerance &amp; Corruption Protection</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; font-size: 0.85rem;">
+            <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 6px; border: 1px solid var(--border-color);">
+              <strong style="color: var(--accent-rose);">Damaged Data Recovery</strong>
+              <p style="color: var(--text-muted); margin-top: 0.25rem;">If LocalStorage text is malformed or schema invalid, it is automatically archived to <code>todo-app.tasks.damaged.&lt;timestamp&gt;</code> to prevent data loss, and an error alert is raised.</p>
+            </div>
+            <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 6px; border: 1px solid var(--border-color);">
+              <strong style="color: var(--accent-amber);">Quota &amp; Security Shield</strong>
+              <p style="color: var(--text-muted); margin-top: 0.25rem;">Catches <code>QuotaExceededError</code> and <code>SecurityError</code> when storage is full or disabled (private browsing mode), gracefully notifying the user via <code>MessageBar</code>.</p>
+            </div>
+            <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 6px; border: 1px solid var(--border-color);">
+              <strong style="color: var(--accent-blue);">SQLite WAL Concurrency</strong>
+              <p style="color: var(--text-muted); margin-top: 0.25rem;">Backend utilizes SQLite in <strong>WAL (Write-Ahead Logging)</strong> mode, allowing readers to query while writes occur concurrently without table locks.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: FEATURES & API MATRIX -->
+    <section id="tab-matrix" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Implemented vs. Planned Architecture Matrix</span>
+          </div>
+          <span class="badge badge-implemented">100% Code Verified</span>
+        </div>
+
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>System Dimension</th>
+              <th>Status</th>
+              <th>Implementation Details</th>
+              <th>Location in Code</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Frontend Framework</strong></td>
+              <td><span class="badge badge-implemented">Implemented</span></td>
+              <td>React 19, Vite SPA, plain CSS, Vitest + React Testing Library.</td>
+              <td><code>frontend/src/</code></td>
+            </tr>
+            <tr>
+              <td><strong>Backend Framework</strong></td>
+              <td><span class="badge badge-implemented">Implemented</span></td>
+              <td>Node.js, Express 4.21, CORS, Supertest + Vitest.</td>
+              <td><code>backend/src/app.js</code></td>
+            </tr>
+            <tr>
+              <td><strong>Database</strong></td>
+              <td><span class="badge badge-implemented">Implemented</span></td>
+              <td>SQLite with <code>better-sqlite3</code> in WAL journal mode. Indexed by <code>createdAt DESC</code>.</td>
+              <td><code>backend/src/db/database.js</code></td>
+            </tr>
+            <tr>
+              <td><strong>REST API Endpoints</strong></td>
+              <td><span class="badge badge-implemented">Implemented</span></td>
+              <td><code>GET /health</code>, <code>GET /api/tasks</code>, <code>GET /api/tasks/:id</code>, <code>POST /api/tasks</code>, <code>PATCH /api/tasks/:id</code>, <code>DELETE /api/tasks/:id</code>.</td>
+              <td><code>backend/src/routes/taskRoutes.js</code></td>
+            </tr>
+            <tr>
+              <td><strong>State Management</strong></td>
+              <td><span class="badge badge-implemented">Implemented</span></td>
+              <td>Unified custom hook <code>useTasks</code> with optimistic rendering and post-paint commit.</td>
+              <td><code>frontend/src/hooks/useTasks.js</code></td>
+            </tr>
+            <tr>
+              <td><strong>Cross-Tab Sync</strong></td>
+              <td><span class="badge badge-implemented">Implemented</span></td>
+              <td><code>window.addEventListener('storage')</code> subscription with damaged data detection.</td>
+              <td><code>frontend/src/services/taskStorage.js</code></td>
+            </tr>
+            <tr>
+              <td><strong>Validation Layer</strong></td>
+              <td><span class="badge badge-implemented">Implemented</span></td>
+              <td>Shared rules: trimmed string, 1–200 characters, empty check.</td>
+              <td><code>titleRules.js</code> &amp; <code>titleValidator.js</code></td>
+            </tr>
+            <tr>
+              <td><strong>Authentication &amp; AuthZ</strong></td>
+              <td><span class="badge badge-planned">Planned / Not Implemented</span></td>
+              <td>No user authentication, JWT, OAuth, or sessions exist. Application operates as an unauthenticated single-user system.</td>
+              <td><em>None</em></td>
+            </tr>
+            <tr>
+              <td><strong>User Accounts &amp; Multi-Tenancy</strong></td>
+              <td><span class="badge badge-planned">Planned / Future Scope</span></td>
+              <td>Tasks do not have a <code>userId</code> foreign key; SQLite table stores all tasks globally.</td>
+              <td><em>Schema: tasks</em></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- REST API Reference -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Backend REST API Reference</span>
+            <span class="badge badge-backend">Port 3001</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span class="badge badge-frontend" style="font-family: var(--font-mono);">GET</span>
+              <code style="font-weight: 700;">/api/tasks</code>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Returns array of all tasks sorted by <code>createdAt DESC</code> (200 OK).</p>
+          </div>
+
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span class="badge badge-implemented" style="font-family: var(--font-mono);">POST</span>
+              <code style="font-weight: 700;">/api/tasks</code>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Payload: <code>{ "title": string }</code>. Creates new task with generated UUID (201 Created).</p>
+          </div>
+
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span class="badge badge-backend" style="font-family: var(--font-mono);">PATCH</span>
+              <code style="font-weight: 700;">/api/tasks/:id</code>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Payload: <code>{ "title"?: string, "completed"?: boolean }</code>. Updates task and sets <code>updatedAt</code> (200 OK).</p>
+          </div>
+
+          <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span class="badge badge-planned" style="font-family: var(--font-mono); background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);">DELETE</span>
+              <code style="font-weight: 700;">/api/tasks/:id</code>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">Deletes task by ID from SQLite database (200 OK or 404 Not Found).</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer Information -->
+  <footer>
+    <p>Generated for To-Do List Project &bull; Architectural Source of Truth &bull; Compatible with all modern browsers</p>
+  </footer>
+
+  <!-- Script for Interactive Node Inspection, Theme Toggle & Workflow Stepper -->
+  <script>
+    // Tab Switching
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+
+        btn.classList.add('active');
+        const tabId = btn.getAttribute('data-tab');
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+      });
+    });
+
+    // Theme Toggle
+    const themeBtn = document.getElementById('themeBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    let isDark = true;
+
+    themeBtn.addEventListener('click', () => {
+      isDark = !isDark;
+      if (isDark) {
+        document.body.removeAttribute('data-theme');
+        themeIcon.textContent = '☀️ Light';
+      } else {
+        document.body.setAttribute('data-theme', 'light');
+        themeIcon.textContent = '🌙 Dark';
+      }
+    });
+
+    // Node Metadata for Inspector
+    const nodeData = {
+      user: {
+        title: "End User Interaction",
+        type: "Human Actor",
+        badge: "User Interface",
+        desc: "Interacts directly with the application via browser keyboard and pointer events. Relies on full accessibility (Tab index, ARIA attributes, polite screen reader updates).",
+        props: [
+          { label: "Input Methods", val: "Keyboard (Enter, Esc, Tab, Space) & Mouse" },
+          { label: "Target Elements", val: "TaskForm input, TaskItem buttons, FilterBar buttons, Delete modal" },
+          { label: "Accessibility Guarantee", val: "WCAG 2.1 AA (4.5:1 contrast, explicit focus outlines)" }
+        ]
+      },
+      'react-dom': {
+        title: "React 19 Entry Point",
+        type: "Client Root",
+        badge: "Vite + React",
+        desc: "Mounts the main React application into the DOM index node (#root). Loaded via modern ES module tags in index.html.",
+        props: [
+          { label: "File Path", val: "frontend/src/main.jsx" },
+          { label: "Module Type", val: "ES Module (type: module)" },
+          { label: "Styling", val: "Global imports: src/styles.css" }
+        ]
+      },
+      app: {
+        title: "App Component",
+        type: "Top-level Container",
+        badge: "React Component",
+        desc: "The only component that reads useTasks(). Manages user confirmation dialogs, inline edit mode coordination, and maintains keyboard focus targets across filter and deletion events.",
+        props: [
+          { label: "File Path", val: "frontend/src/App.jsx" },
+          { label: "State Owned", val: "pendingId, editingId, focusRequestRef, rootRef" },
+          { label: "Hook Invocations", val: "useTasks() (destructures 10 actions and states)" }
+        ]
+      },
+      useTasks: {
+        title: "useTasks Custom Hook",
+        type: "State & Persistence Hook",
+        badge: "Core State Manager",
+        desc: "Encapsulates task list state in memory. Implements optimistic state transitions, schedules asynchronous persistence via requestAnimationFrame + setTimeout, and subscribes to multi-tab storage events.",
+        props: [
+          { label: "File Path", val: "frontend/src/hooks/useTasks.js" },
+          { label: "Returns", val: "visibleTasks, filter, setFilter, hasTasks, remaining, notice, add, toggle, remove, edit" },
+          { label: "Sync Engine", val: "Dual storage: LocalStorage + REST API (/api/tasks)" }
+        ]
+      },
+      titleRules: {
+        title: "titleRules Validator",
+        type: "Pure Utility",
+        badge: "Validation Domain",
+        desc: "Enforces business rules on task titles before saving. Trims whitespace, rejects blank titles, and limits text to 200 characters.",
+        props: [
+          { label: "File Path", val: "frontend/src/services/titleRules.js" },
+          { label: "Function", val: "checkTitle(raw: string)" },
+          { label: "Output Contract", val: "{ ok: true, title } | { ok: false, reason: 'empty' | 'too-long' }" }
+        ]
+      },
+      taskStorage: {
+        title: "taskStorage Service",
+        type: "Storage Abstraction Gateway",
+        badge: "Service Layer",
+        desc: "The ONLY frontend module authorized to touch browser storage or network fetch APIs. Enforces architectural isolation between UI components and persistence mechanisms.",
+        props: [
+          { label: "File Path", val: "frontend/src/services/taskStorage.js" },
+          { label: "Storage Key", val: "todo-app.tasks" },
+          { label: "API Base", val: "/api/tasks (proxied to http://localhost:3001)" },
+          { label: "Methods", val: "load(), save(), subscribe(), sync(), list(), create(), update(), remove()" }
+        ]
+      },
+      localStorage: {
+        title: "Browser LocalStorage",
+        type: "Web Storage API",
+        badge: "Client Persistence",
+        desc: "Synchronous key-value storage in the user's browser. Used as a fast offline-capable local cache.",
+        props: [
+          { label: "Schema Version", val: "version: 1" },
+          { label: "Backup Prefix", val: "todo-app.tasks.damaged.<timestamp>" },
+          { label: "Quota Handling", val: "Traps QuotaExceededError and notifies UI" }
+        ]
+      },
+      express: {
+        title: "Express Backend Application",
+        type: "REST API Gateway",
+        badge: "Node.js Server",
+        desc: "Configured Express server listening on port 3001. Provides CORS support, JSON body parsing, and standardized error response formatting.",
+        props: [
+          { label: "File Path", val: "backend/src/app.js & server.js" },
+          { label: "Middleware", val: "cors(), express.json(), errorHandler, notFoundHandler" },
+          { label: "Health Route", val: "GET /health" }
+        ]
+      },
+      taskRoutes: {
+        title: "taskRoutes Router",
+        type: "HTTP Endpoint Controller",
+        badge: "Express Router",
+        desc: "Maps HTTP operations to taskService operations. Performs request payload validation with titleValidator and handles HTTP status codes (200, 201, 400, 404, 500).",
+        props: [
+          { label: "File Path", val: "backend/src/routes/taskRoutes.js" },
+          { label: "Endpoints", val: "GET /, GET /:id, POST /, PATCH /:id, DELETE /:id" },
+          { label: "Validation", val: "validateTitle() on POST and PATCH" }
+        ]
+      },
+      taskService: {
+        title: "taskService Data Access Layer",
+        type: "CRUD Service",
+        badge: "Business Logic",
+        desc: "Direct database access layer. Formats SQLite rows into standard Task objects, converts completed integer flags to booleans, and generates UUIDs.",
+        props: [
+          { label: "File Path", val: "backend/src/services/taskService.js" },
+          { label: "Functions", val: "getAllTasks(), getTaskById(), createTask(), updateTask(), deleteTask()" },
+          { label: "ID Generation", val: "node:crypto randomUUID()" }
+        ]
+      },
+      database: {
+        title: "SQLite Database",
+        type: "Embedded Database",
+        badge: "better-sqlite3",
+        desc: "Zero-configuration persistent SQL database. Runs in WAL (Write-Ahead Logging) mode for enhanced concurrency and durability.",
+        props: [
+          { label: "Database Path", val: "backend/data/todo.db" },
+          { label: "Driver", val: "better-sqlite3" },
+          { label: "Index", val: "idx_tasks_createdAt ON tasks(createdAt DESC)" },
+          { label: "Pragmas", val: "journal_mode = WAL; foreign_keys = ON" }
+        ]
+      },
+      TaskForm: {
+        title: "TaskForm Component",
+        type: "UI Form",
+        badge: "React Component",
+        desc: "Renders task input and 'Add' button. Manages input ref, calls title validation, displays inline alert messages, and clears input upon successful addition.",
+        props: [
+          { label: "File Path", val: "frontend/src/components/TaskForm.jsx" },
+          { label: "Props", val: "{ onAdd: (title: string) => { ok, reason } }" },
+          { label: "Test ID", val: "data-testid=\"task-form\"" }
+        ]
+      },
+      TaskItem: {
+        title: "TaskItem Component",
+        type: "UI Item",
+        badge: "React Component",
+        desc: "Represents one row in the task list. Contains checkbox, title, Edit button, Delete button, and conditionally mounts TaskEditField.",
+        props: [
+          { label: "File Path", val: "frontend/src/components/TaskItem.jsx" },
+          { label: "Props", val: "task, editingId, onToggle, onAskDelete, onStartEdit, onEndEdit, onEdit" },
+          { label: "Visual State", val: "Strikethrough text when task.completed is true" }
+        ]
+      },
+      TaskEditField: {
+        title: "TaskEditField Component",
+        type: "UI Inline Editor",
+        badge: "React Component",
+        desc: "Inline edit field displayed when a task enters editing mode. Focuses and selects all text on mount. Enter commits; Esc cancels.",
+        props: [
+          { label: "File Path", val: "frontend/src/components/TaskEditField.jsx" },
+          { label: "Props", val: "taskId, title, onSave, onCancel" },
+          { label: "Shortcuts", val: "Enter: Save | Escape: Cancel" }
+        ]
+      },
+      DeleteDialog: {
+        title: "DeleteDialog Component",
+        type: "Modal Dialog",
+        badge: "Native <dialog>",
+        desc: "Confirmation dialog for task deletion. Uses HTML5 native modal dialog API. Focus defaults to Cancel button to prevent accidental deletions.",
+        props: [
+          { label: "File Path", val: "frontend/src/components/DeleteDialog.jsx" },
+          { label: "Props", val: "task, onConfirm, onCancel" },
+          { label: "Behavior", val: "Esc cancels; backdrop click has no action" }
+        ]
+      },
+      FilterBar: {
+        title: "FilterBar Component",
+        type: "Filter Controls",
+        badge: "React Component",
+        desc: "Renders filter buttons for 'All', 'Active', and 'Completed'. Uses aria-pressed attribute to reflect current selection.",
+        props: [
+          { label: "File Path", val: "frontend/src/components/FilterBar.jsx" },
+          { label: "Props", val: "filter: string, onChange: (val) => void" },
+          { label: "Options", val: "all, active, completed" }
+        ]
+      },
+      Counter: {
+        title: "Counter Component",
+        type: "Status Indicator",
+        badge: "React Component",
+        desc: "Accessible counter displaying count of uncompleted items ('N items left'). Renders with role='status' and aria-live='polite'.",
+        props: [
+          { label: "File Path", val: "frontend/src/components/Counter.jsx" },
+          { label: "Props", val: "remaining: number" },
+          { label: "Pluralization", val: "1 item left vs N items left" }
+        ]
+      },
+      MessageBar: {
+        title: "MessageBar Component",
+        type: "Alert Banner",
+        badge: "React Component",
+        desc: "Alert banner rendered above the task input for displaying storage warnings (load-failed or save-failed notices).",
+        props: [
+          { label: "File Path", val: "frontend/src/components/MessageBar.jsx" },
+          { label: "Props", val: "notice: { kind: string, text: string } | null" },
+          { label: "Role", val: "role=\"alert\"" }
+        ]
+      },
+      TaskList: {
+        title: "TaskList Component",
+        type: "List Container",
+        badge: "React Component",
+        desc: "Renders either empty guidance hints ('No tasks yet. Add one above.' / 'No tasks match this filter.') or the list of TaskItem components.",
+        props: [
+          { label: "File Path", val: "frontend/src/components/TaskList.jsx" },
+          { label: "Props", val: "tasks, hasTasks, editingId, onToggle, onAskDelete, onStartEdit, onEndEdit, onEdit" },
+          { label: "Role", val: "<ul className=\"task-list\">" }
+        ]
+      }
+    };
+
+    function inspectNode(key) {
+      const data = nodeData[key];
+      if (!data) return;
+
+      document.querySelectorAll('.node').forEach(n => n.classList.remove('active'));
+      // highlight if exists
+      const target = event?.currentTarget;
+      if (target && target.classList.contains('node')) {
+        target.classList.add('active');
+      }
+
+      document.getElementById('inspectTitle').textContent = data.title;
+      document.getElementById('inspectBadge').textContent = data.badge;
+      document.getElementById('inspectDesc').textContent = data.desc;
+
+      const propList = document.getElementById('inspectProps');
+      propList.innerHTML = '';
+
+      data.props.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'prop-item';
+        item.innerHTML = `
+          <span class="prop-label">${p.label}</span>
+          <span class="prop-val">${p.val}</span>
+        `;
+        propList.appendChild(item);
+      });
+    }
+
+    // Workflows Configuration
+    const workflows = {
+      add: [
+        {
+          num: 1,
+          actor: "User & TaskForm",
+          title: "User Inputs Task Title & Submits",
+          desc: "User types task title and presses Enter or clicks 'Add'. Form prevents default submit event.",
+          code: "const result = onAdd(input.value);"
+        },
+        {
+          num: 2,
+          actor: "titleRules.js",
+          title: "Frontend Title Validation",
+          desc: "Trims whitespace. Validates string length (1–200 characters). Returns refusal reason if invalid.",
+          code: "const checked = checkTitle(rawTitle); // { ok: true, title: 'Buy milk' }"
+        },
+        {
+          num: 3,
+          actor: "useTasks Hook",
+          title: "Optimistic State Update in Memory",
+          desc: "Creates new task object with temporary UUID. Prepend to state and updates ref. UI draws new row instantly.",
+          code: "const task = { id: newId(), title, completed: false, createdAt: now, updatedAt: now };\nsetTasks([task, ...tasksRef.current]);"
+        },
+        {
+          num: 4,
+          actor: "useTasks Hook",
+          title: "Scheduled Asynchronous Local Save",
+          desc: "Schedules post-paint write to browser LocalStorage to avoid blocking UI frame rendering.",
+          code: "requestAnimationFrame(() => setTimeout(runSave, 0));"
+        },
+        {
+          num: 5,
+          actor: "taskStorage -> REST API",
+          title: "Asynchronous Backend API Request",
+          desc: "Sends HTTP POST /api/tasks with JSON body { title }. Server validates, saves to SQLite, and returns created Task.",
+          code: "POST /api/tasks -> 201 Created -> updates optimistic task with server task"
+        }
+      ],
+      edit: [
+        {
+          num: 1,
+          actor: "User & TaskItem",
+          title: "User Clicks 'Edit' Button",
+          desc: "App sets editingId = task.id. TaskItem replaces title with TaskEditField inline editor.",
+          code: "setEditingId(task.id); // row switches to edit mode"
+        },
+        {
+          num: 2,
+          actor: "TaskEditField",
+          title: "Field Focus & Text Selection",
+          desc: "TaskEditField autofocuses on mount and selects all text. User enters updated title.",
+          code: "inputRef.current?.select(); // Enter to save, Esc to cancel"
+        },
+        {
+          num: 3,
+          actor: "useTasks Hook",
+          title: "Validation & In-Memory Update",
+          desc: "Checks title against titleRules. If valid and changed, updates task title and updatedAt timestamp in memory.",
+          code: "edit(id, newTitle) -> { ok: true } -> setEditingId(null)"
+        },
+        {
+          num: 4,
+          actor: "REST API",
+          title: "Asynchronous Server Patch",
+          desc: "taskStorage sends HTTP PATCH /api/tasks/:id with updated title. SQLite database executes update.",
+          code: "PATCH /api/tasks/:id { title: 'New Title' } -> 200 OK"
+        },
+        {
+          num: 5,
+          actor: "App Component",
+          title: "Focus Return",
+          desc: "After edit closes, focus automatically shifts back to the row's Edit button for keyboard users.",
+          code: "focusRequestRef.current = { kind: 'row', id: shownEditingId, control: 'edit' };"
+        }
+      ],
+      delete: [
+        {
+          num: 1,
+          actor: "User & TaskItem",
+          title: "User Clicks 'Delete' Button",
+          desc: "TaskItem triggers onAskDelete(task.id). App sets pendingId, prompting DeleteDialog to open.",
+          code: "onAskDelete(task.id) -> setPendingId(id);"
+        },
+        {
+          num: 2,
+          actor: "DeleteDialog",
+          title: "Native Modal Confirmation Opens",
+          desc: "HTML5 <dialog> opens via showModal(). Focus is explicitly placed onto 'Cancel' to prevent accidental confirmation.",
+          code: "dialog.showModal(); cancelRef.current?.focus();"
+        },
+        {
+          num: 3,
+          actor: "User & DeleteDialog",
+          title: "User Confirms Deletion",
+          desc: "User clicks 'Delete' in dialog. App calculates focus neighbour (next item, previous item, or add input).",
+          code: "confirmDelete(id) -> remove(id); setPendingId(null);"
+        },
+        {
+          num: 4,
+          actor: "useTasks Hook",
+          title: "State Removal & Scheduled Save",
+          desc: "Filters out deleted task from tasks array. Marks saveDueRef = true to update LocalStorage.",
+          code: "setTasks(current.filter(t => t.id !== id));"
+        },
+        {
+          num: 5,
+          actor: "REST API",
+          title: "Database Row Deletion",
+          desc: "taskStorage sends HTTP DELETE /api/tasks/:id. Express queries SQLite: DELETE FROM tasks WHERE id = ?.",
+          code: "DELETE /api/tasks/:id -> 200 OK { message: 'Task deleted successfully' }"
+        }
+      ],
+      complete: [
+        {
+          num: 1,
+          actor: "User & TaskItem",
+          title: "User Toggles Checkbox",
+          desc: "User clicks or presses Space on task checkbox. App calculates focus move if active filter would hide the task.",
+          code: "handleToggle(task.id) -> toggle(task.id);"
+        },
+        {
+          num: 2,
+          actor: "useTasks Hook",
+          title: "State Inversion & Timestamp Update",
+          desc: "Inverts completed boolean for the target ID and updates updatedAt to current ISO timestamp.",
+          code: "map(t => t.id === id ? { ...t, completed: !t.completed, updatedAt: now } : t)"
+        },
+        {
+          num: 3,
+          actor: "UI Components",
+          title: "Re-render & Counter Update",
+          desc: "TaskItem applies strikethrough styling (task-item--completed). Counter recalculates remaining uncompleted tasks.",
+          code: "const remaining = tasks.filter(t => !t.completed).length;"
+        },
+        {
+          num: 4,
+          actor: "REST API",
+          title: "Server State Patch",
+          desc: "Sends HTTP PATCH /api/tasks/:id with { completed: boolean }. SQLite updates column completed (1 or 0).",
+          code: "PATCH /api/tasks/:id { completed: true } -> 200 OK"
+        }
+      ],
+      filter: [
+        {
+          num: 1,
+          actor: "User & FilterBar",
+          title: "User Selects Filter Tab",
+          desc: "User clicks 'All', 'Active', or 'Completed'. FilterBar invokes setFilter(value).",
+          code: "onClick={() => onChange('completed')}"
+        },
+        {
+          num: 2,
+          actor: "useTasks Hook",
+          title: "Filter State Updated",
+          desc: "Filter state is stored in React memory only (never written to LocalStorage or database; resets to 'all' on reload).",
+          code: "setFilterState(value); // 'all' | 'active' | 'completed'"
+        },
+        {
+          num: 3,
+          actor: "useTasks Hook",
+          title: "Derived visibleTasks Computation",
+          desc: "visibleTasks is recomputed without mutating the master tasks array. Counter remains untouched.",
+          code: "visibleTasks = filter === 'all' ? tasks : tasks.filter(t => filter === 'completed' ? t.completed : !t.completed);"
+        },
+        {
+          num: 4,
+          actor: "TaskList",
+          title: "Conditional List Rendering",
+          desc: "If no tasks match the filter, TaskList renders 'No tasks match this filter.' Empty hint.",
+          code: "if (tasks.length === 0) return <p className=\"empty-hint\">No tasks match this filter.</p>;"
+        }
+      ],
+      sync: [
+        {
+          num: 1,
+          actor: "Application Mount",
+          title: "Initial Synchronous Local Load",
+          desc: "When page loads, useTasks synchronously reads LocalStorage (todo-app.tasks) for immediate rendering with zero flicker.",
+          code: "const [loaded] = useState(() => TaskStorage.load());"
+        },
+        {
+          num: 2,
+          actor: "Backend REST Sync",
+          title: "Initial Asynchronous SQLite Sync",
+          desc: "useTasks fires TaskStorage.sync(), fetching all tasks from GET /api/tasks and refreshing LocalStorage cache.",
+          code: "TaskStorage.sync() -> GET /api/tasks -> setTasks(res.tasks) -> TaskStorage.save(res.tasks);"
+        },
+        {
+          num: 3,
+          actor: "Window Storage Listener",
+          title: "Cross-Tab Synchronization",
+          desc: "A second browser tab editing tasks triggers window storage event. The passive tab synchronizes instantly without re-saving.",
+          code: "window.addEventListener('storage', onStorage) -> updates tasksRef and screen"
+        },
+        {
+          num: 4,
+          actor: "Corrupted Data Shield",
+          title: "Damaged Data Archiving",
+          desc: "If JSON is unreadable, it is safely moved to todo-app.tasks.damaged.<timestamp> and a load-failed alert is displayed.",
+          code: "storage.setItem(BACKUP_PREFIX + Date.now(), unreadable.text);"
+        }
+      ]
+    };
+
+    function switchWorkflow(key) {
+      document.querySelectorAll('.wf-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.wf-btn')).find(b => b.getAttribute('onclick')?.includes(key));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const container = document.getElementById('wfTrackContainer');
+      container.innerHTML = '';
+
+      const steps = workflows[key] || [];
+      steps.forEach(s => {
+        const item = document.createElement('div');
+        item.className = 'step-item';
+        item.innerHTML = `
+          <div class="step-num">${s.num}</div>
+          <div class="step-title">
+            <span>${s.title}</span>
+            <span class="step-actor">${s.actor}</span>
+          </div>
+          <p class="step-desc">${s.desc}</p>
+          <pre class="step-code"><code>${s.code}</code></pre>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // Initialize Default View
+    window.addEventListener('DOMContentLoaded', () => {
+      switchWorkflow('add');
+      inspectNode('app');
+    });
+  </script>
+</body>
+</html>
